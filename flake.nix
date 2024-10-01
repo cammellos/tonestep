@@ -77,12 +77,8 @@
           export LD_LIBRARY_PATH="$(pwd)/eartrainer/build/linux/x64/debug/bundle/lib:$LD_LIBRARY_PATH"
           export GRADLE_OPTS="-Dorg.gradle.project.android.aapt2FromMavenOverride=${androidComposition.androidsdk}/libexec/android-sdk/build-tools/${buildToolsVersion}/aapt2";
 
-
-          mkdir -p ./eartrainer/build/rust_lib_eartrainer/jniLibs/debug/arm64-v8a/
-          cp "$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_shared.so"  ./eartrainer/build/rust_lib_eartrainer/jniLibs/debug/arm64-v8a/
-
-          mkdir -p ./eartrainer/build/rust_lib_eartrainer/jniLibs/debug/armeabi-v7a/
-          cp "$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/arm-linux-androideabi/libc++_shared.so"  ./eartrainer/build/rust_lib_eartrainer/jniLibs/debug/armeabi-v7a/
+          export ANDROID_AARCH_LINUX_ANDROID_LIBC="$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_shared.so"
+          export ANDROID_ARM_LINUX_ANDROIDEABI_LIBC="$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/arm-linux-androideabi/libc++_shared.so"
 
           cargo install flutter_rust_bridge_codegen
         '';
