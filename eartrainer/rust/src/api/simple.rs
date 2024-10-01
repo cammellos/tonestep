@@ -5,7 +5,7 @@ use std::time::{Duration, Instant};
 
 #[flutter_rust_bridge::frb(sync)] // Synchronous mode for simplicity of the demo
 pub fn greet(name: String) -> String {
-    play_sound();
+    //play_sound();
 
     format!("Hello, {name}!")
 }
@@ -22,7 +22,7 @@ pub fn play_sound() {
         .default_output_device()
         .expect("No output device available");
     let config = cpal::StreamConfig {
-        channels: 1,
+        channels: 2,
         sample_rate: cpal::SampleRate(48000),
         buffer_size: cpal::BufferSize::Default,
     };
@@ -55,7 +55,7 @@ pub fn play_sound() {
     stream.play().unwrap();
 
     // Keep the application running while the sound is playing
-    std::thread::sleep(std::time::Duration::from_secs(6));
+    std::thread::sleep(std::time::Duration::from_secs(20));
 }
 
 fn write_data_timed<T>(
@@ -76,7 +76,7 @@ fn write_data_timed<T>(
 
     for frame in iter.by_ref() {
         // First tone (always plays)
-        let value1 = if elapsed < Duration::from_secs(5) {
+        let value1 = if elapsed < Duration::from_secs(20) {
             (2.0 * PI * frequency1 * *sample_clock / sample_rate).sin() * amplitude1
         } else {
             0.0 // Stop first tone after 5 seconds
@@ -89,12 +89,21 @@ fn write_data_timed<T>(
             0.0 // Silence for the second tone
         };
 
-        // Normalize the sum of the two values to prevent clipping
-        let combined_left = (value1 + value2).min(1.0).max(-1.0); // Left channel (main tone)
-        let combined_right = (value2 + value1).min(1.0).max(-1.0); // Right channel (drone)
+        // Combine the two signals
+        let combined_left = (value1 + value2) * 0.5;
+        let combined_right = (value1 + value2) * 0.5;
 
-        frame[0] = cpal::Sample::from(&(combined_left as f32)); // Left channel
-        frame[1] = cpal::Sample::from(&(combined_right as f32)); // Right channel
+        // Normalize to prevent clipping (keep values within [-1.0, 1.0])
+        let max_value = combined_left.abs().max(combined_right.abs());
+        let normalization_factor = if max_value > 1.0 {
+            1.0 / max_value
+        } else {
+            1.0
+        };
+
+        // Apply the normalization factor to avoid clipping
+        frame[0] = cpal::Sample::from(&(combined_left * normalization_factor as f32)); // Left channel
+        frame[1] = cpal::Sample::from(&(combined_right * normalization_factor as f32)); // Right channel
 
         *sample_clock = (*sample_clock + 1.0) % sample_rate;
     }

@@ -16,10 +16,13 @@ class MyApp extends StatelessWidget {
       home: Scaffold(
         appBar: AppBar(title: const Text('flutter_rust_bridge quickstart')),
         body: Center(
-          child: Text(
-              'Action: Call Rust `greet("Tom")`\nResult: `${greet(name: "Tom")}`'),
-        ),
+	  child: ElevatedButton(
+	    style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+	    child: Text('Action: Call Rust `greet("Tom")`\nResult: `${greet(name: "Tom")}`'),
+            onPressed: () {playSound();},
+	  ),
       ),
+      )
     );
   }
 }
