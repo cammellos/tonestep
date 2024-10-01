@@ -19,11 +19,14 @@
         };
 
       };
+      buildToolsVersion = "34.0.0";
 
       androidComposition = pkgs.androidenv.composeAndroidPackages {
         abiVersions = [ "arm64-v8a" "x86_64" ];
         includeNDK = true;
-        platformVersions = [ "30" ];
+        ndkVersion = "23.1.7779620";
+        buildToolsVersions = [ buildToolsVersion "30.0.3" ];
+        platformVersions = [ "33" "34" ];
       };
 
     in {
@@ -49,6 +52,7 @@
             libsepol.dev
 
               alsa-lib
+          aapt
               pcre2.dev
               rustup
             ];
@@ -57,7 +61,7 @@
           pkgs.pkg-config
           pkgs.rustup
           pkgs.cargo-apk
-          pkgs.jdk
+          pkgs.jdk17
           pkgs.alsa-lib
         ];
 
@@ -68,6 +72,7 @@
           export PATH="$HOME/.cargo/bin:$PATH"
 
           export LD_LIBRARY_PATH="$(pwd)/eartrainer/build/linux/x64/debug/bundle/lib:$LD_LIBRARY_PATH"
+          export GRADLE_OPTS="-Dorg.gradle.project.android.aapt2FromMavenOverride=${androidComposition.androidsdk}/libexec/android-sdk/build-tools/${buildToolsVersion}/aapt2";
 
           cargo install flutter_rust_bridge_codegen
         '';
