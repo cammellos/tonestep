@@ -55,6 +55,9 @@
           aapt
               pcre2.dev
               rustup
+
+              rust-analyzer
+              rustfmt
             ];
 
         nativeBuildInputs = [

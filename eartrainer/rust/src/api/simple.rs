@@ -1,5 +1,6 @@
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use std::f32::consts::PI;
+use std::ffi::c_void;
 use std::time::{Duration, Instant};
 
 #[flutter_rust_bridge::frb(sync)] // Synchronous mode for simplicity of the demo
@@ -20,9 +21,13 @@ pub fn play_sound() {
     let device = host
         .default_output_device()
         .expect("No output device available");
-    let config = device.default_output_config().unwrap();
+    let config = cpal::StreamConfig {
+        channels: 1,
+        sample_rate: cpal::SampleRate(48000),
+        buffer_size: cpal::BufferSize::Default,
+    };
 
-    let sample_rate = config.sample_rate().0 as f32;
+    let sample_rate = config.sample_rate.0 as f32;
     let frequency1 = 440.0; // Main tone frequency (A4)
     let frequency2 = 523.25; // Second tone frequency (C5)
     let mut sample_clock = 0f32;
@@ -30,8 +35,8 @@ pub fn play_sound() {
     // Start the timer
     let start_time = Instant::now();
 
-    let stream = match config.sample_format() {
-        cpal::SampleFormat::F32 => device.build_output_stream(
+    let stream = device
+        .build_output_stream(
             &config.into(),
             move |data: &mut [f32], _| {
                 write_data_timed(
@@ -44,37 +49,8 @@ pub fn play_sound() {
                 );
             },
             err_fn,
-        ),
-        cpal::SampleFormat::I16 => device.build_output_stream(
-            &config.into(),
-            move |data: &mut [i16], _| {
-                write_data_timed(
-                    data,
-                    sample_rate,
-                    frequency1,
-                    frequency2,
-                    &mut sample_clock,
-                    &start_time,
-                );
-            },
-            err_fn,
-        ),
-        cpal::SampleFormat::U16 => device.build_output_stream(
-            &config.into(),
-            move |data: &mut [u16], _| {
-                write_data_timed(
-                    data,
-                    sample_rate,
-                    frequency1,
-                    frequency2,
-                    &mut sample_clock,
-                    &start_time,
-                );
-            },
-            err_fn,
-        ),
-    }
-    .unwrap();
+        )
+        .unwrap();
 
     stream.play().unwrap();
 

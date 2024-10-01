@@ -1252,6 +1252,8 @@ version = "0.1.0"
 dependencies = [
  "cpal 0.13.5",
  "flutter_rust_bridge",
+ "jni 0.21.1",
+ "ndk-context",
  "oboe 0.4.6",
  "rodio",
 ]
