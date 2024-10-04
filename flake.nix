@@ -74,7 +74,7 @@
           export ANDROID_NDK_ROOT="$ANDROID_SDK_ROOT/ndk-bundle"
           export PATH="$HOME/.cargo/bin:$PATH"
 
-          export LD_LIBRARY_PATH="$(pwd)/eartrainer/build/linux/x64/debug/bundle/lib:$LD_LIBRARY_PATH"
+          export LD_LIBRARY_PATH="$(pwd)/tonestep/build/linux/x64/debug/bundle/lib:$LD_LIBRARY_PATH"
           export GRADLE_OPTS="-Dorg.gradle.project.android.aapt2FromMavenOverride=${androidComposition.androidsdk}/libexec/android-sdk/build-tools/${buildToolsVersion}/aapt2";
 
           export ANDROID_AARCH_LINUX_ANDROID_LIBC="$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_shared.so"
