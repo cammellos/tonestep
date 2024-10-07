@@ -7,8 +7,10 @@ void main() {
     test('returns true for natural notes', () {
       expect(isNaturalNote(Note.one), isTrue);
       expect(isNaturalNote(Note.two), isTrue);
+      expect(isNaturalNote(Note.three), isTrue);
       expect(isNaturalNote(Note.four), isTrue);
       expect(isNaturalNote(Note.five), isTrue);
+      expect(isNaturalNote(Note.six), isTrue);
       expect(isNaturalNote(Note.seven), isTrue);
     });
 
@@ -28,10 +30,12 @@ void main() {
         Note.flatTwo,
         Note.two,
         Note.flatThree,
+	Note.three,
         Note.four,
         Note.sharpFour,
         Note.five,
         Note.flatSix,
+	Note.six,
         Note.flatSeven,
         Note.seven,
       ];
@@ -39,8 +43,10 @@ void main() {
       final expectedNaturalNotes = [
         Note.one,
         Note.two,
+	Note.three,
         Note.four,
         Note.five,
+	Note.six,
         Note.seven,
       ];
 
@@ -61,10 +67,12 @@ void main() {
         Note.flatTwo,
         Note.two,
         Note.flatThree,
+	Note.three,
         Note.four,
         Note.sharpFour,
         Note.five,
         Note.flatSix,
+	Note.six,
         Note.flatSeven,
         Note.seven,
       ];
@@ -93,9 +101,11 @@ void main() {
       expect(toString(Note.flatTwo), equals('b2'));
       expect(toString(Note.two), equals('2'));
       expect(toString(Note.flatThree), equals('b3'));
+      expect(toString(Note.three), equals('3'));
       expect(toString(Note.four), equals('4'));
       expect(toString(Note.sharpFour), equals('#4'));
       expect(toString(Note.five), equals('5'));
+      expect(toString(Note.six), equals('6'));
       expect(toString(Note.flatSix), equals('b6'));
       expect(toString(Note.flatSeven), equals('b7'));
       expect(toString(Note.seven), equals('7'));

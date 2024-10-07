@@ -15,11 +15,13 @@ enum Note {
   one,
   flatTwo,
   two,
+  three,
   flatThree,
   four,
   sharpFour,
   five,
   flatSix,
+  six,
   flatSeven,
   seven,
   ;

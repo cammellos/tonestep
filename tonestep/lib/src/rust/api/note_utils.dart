@@ -4,8 +4,10 @@ bool isNaturalNote(Note note) {
   switch (note) {
     case Note.one:
     case Note.two:
+    case Note.three:
     case Note.four:
     case Note.five:
+    case Note.six:
     case Note.seven:
 	return true;
     default:
@@ -29,6 +31,8 @@ String toString(Note note) {
 	return 'b2';
     case Note.two:
         return '2';
+    case Note.three:
+        return '3';
     case Note.flatThree:
         return 'b3';
     case Note.four:
@@ -39,11 +43,13 @@ String toString(Note note) {
 	return '5';
     case Note.flatSix:
 	return 'b6';
+    case Note.six:
+        return '6';
     case Note.flatSeven:
 	return 'b7';
     case Note.seven:
 	return '7';
     default:
-        throw Exception('invalid note ${note}');
+        throw Exception('invalid note $note');
   }
 }

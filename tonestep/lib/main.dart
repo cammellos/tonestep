@@ -17,11 +17,13 @@ class NotesProvider {
 class ToneStep extends StatelessWidget {
   final NotesProvider notesProvider = NotesProvider();
 
+  ToneStep({super.key});
+
   @override
   Widget build(BuildContext context) {
       return MaterialApp(
 	home: Scaffold(
-	  appBar: AppBar(title: Text('Musical Notes')),
+	  appBar: AppBar(title: const Text('Musical Notes')),
 	  body:const  HomeScreen(),
 	),
       );
@@ -40,7 +42,7 @@ class HomeScreen extends StatelessWidget {
           // Correct context usage here
           Navigator.of(context).push(
             MaterialPageRoute(
-              builder: (context) => CreateNewExerciseScreen(),
+              builder: (context) => const CreateNewExerciseScreen(),
             ),
           );
         },
@@ -50,8 +52,17 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
-class CreateNewExerciseScreen extends StatelessWidget {
+class CreateNewExerciseScreen extends StatefulWidget {
+  const CreateNewExerciseScreen({super.key});
+
+
+  @override
+  State<CreateNewExerciseScreen> createState() => _CreateNewExerciseScreenState();
+}
+
+class _CreateNewExerciseScreenState extends State<CreateNewExerciseScreen> {
   final NotesProvider notesProvider = NotesProvider();
+  var selectedNotes = <notes.Note>{};
 
   @override
   Widget build(BuildContext context) {
@@ -61,24 +72,70 @@ class CreateNewExerciseScreen extends StatelessWidget {
 	    future: notesProvider.getAllNotes(),
 	    builder: (context, snapshot) {
 	      if (snapshot.connectionState == ConnectionState.waiting) {
-		return CircularProgressIndicator();
+		return const CircularProgressIndicator();
 	      } else if (snapshot.hasError) {
 		return Text('Error: ${snapshot.error}');
 	      } else if (snapshot.hasData) {
-		return ListView.builder(
-		  itemCount: snapshot.data!.length,
-		  itemBuilder: (context, index) {
-		    return ListTile(
-		      title: Text(noteUtils.toString(snapshot.data![index])),
-		    );
-		  },
-		);
+	        List<notes.Note> allNotes = snapshot.data ?? [];
+		return Row(
+		  mainAxisAlignment: MainAxisAlignment.center,
+		  children: noteUtils.naturalNotes(allNotes).map((note)  {
+		    return Expanded(child: SquareCell(selected: this.selectedNotes.contains(note), note: note,  onPressed: ()  {
+		      setState(() {
+			if (this.selectedNotes.contains(note)) {
+			  this.selectedNotes.remove(note);
+			} else {
+			  this.selectedNotes.add(note);
+			}
+			});
+
+		    }));
+		    }).toList());
+
 	      } else {
-		return Text('No notes available');
+		return const Text('No notes available');
 	      }
 	    },
 	  ),
     );
   }
 }
+
+
+class SquareCell extends StatelessWidget {
+  const SquareCell({
+    super.key,
+    required this.selected,
+    required this.note,
+    required this.onPressed,
+  });
+  final bool selected;
+  final notes.Note note;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Calculate the width for the square cell
+        double cellSize = constraints.maxWidth / 8;
+
+        return Container(
+          width: cellSize,
+	  margin: const EdgeInsets.all(10.0),
+          height: cellSize, // Make the height equal to the width for a square
+          color: this.selected ? Colors.blue : Colors.green, // Color of the cell
+          child: TextButton(
+	    onPressed: onPressed,
+            child: Text(
+              noteUtils.toString(note),
+              style: const TextStyle(color: Colors.white),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
 
