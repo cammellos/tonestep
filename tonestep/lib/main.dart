@@ -76,23 +76,44 @@ class _CreateNewExerciseScreenState extends State<CreateNewExerciseScreen> {
             return Text('Error: ${snapshot.error}');
           } else if (snapshot.hasData) {
             List<notes.Note> allNotes = snapshot.data ?? [];
-            return Row(
+            return Column(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: note_utils.naturalNotes(allNotes).map((note) {
-                  return Expanded(
-                      child: SquareCell(
-                          selected: selectedNotes.contains(note),
-                          note: note,
-                          onPressed: () {
-                            setState(() {
-                              if (selectedNotes.contains(note)) {
-                                selectedNotes.remove(note);
-                              } else {
-                                selectedNotes.add(note);
-                              }
-                            });
-                          }));
-                }).toList());
+                children: [
+                  Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: note_utils.alteredNotes(allNotes).map((note) {
+                        return Expanded(
+                            child: SquareCell(
+                                selected: selectedNotes.contains(note),
+                                note: note,
+                                onPressed: () {
+                                  setState(() {
+                                    if (selectedNotes.contains(note)) {
+                                      selectedNotes.remove(note);
+                                    } else {
+                                      selectedNotes.add(note);
+                                    }
+                                  });
+                                }));
+                      }).toList()),
+                  Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: note_utils.naturalNotes(allNotes).map((note) {
+                        return Expanded(
+                            child: SquareCell(
+                                selected: selectedNotes.contains(note),
+                                note: note,
+                                onPressed: () {
+                                  setState(() {
+                                    if (selectedNotes.contains(note)) {
+                                      selectedNotes.remove(note);
+                                    } else {
+                                      selectedNotes.add(note);
+                                    }
+                                  });
+                                }));
+                      }).toList())
+                ]);
           } else {
             return const Text('No notes available');
           }
@@ -124,8 +145,7 @@ class SquareCell extends StatelessWidget {
           width: cellSize,
           margin: const EdgeInsets.all(10.0),
           height: cellSize, // Make the height equal to the width for a square
-          color:
-              selected ? Colors.blue : Colors.green, // Color of the cell
+          color: selected ? Colors.blue : Colors.green, // Color of the cell
           child: TextButton(
             onPressed: onPressed,
             child: Text(
