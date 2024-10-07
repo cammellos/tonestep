@@ -30,12 +30,12 @@ void main() {
         Note.flatTwo,
         Note.two,
         Note.flatThree,
-	Note.three,
+        Note.three,
         Note.four,
         Note.sharpFour,
         Note.five,
         Note.flatSix,
-	Note.six,
+        Note.six,
         Note.flatSeven,
         Note.seven,
       ];
@@ -43,10 +43,10 @@ void main() {
       final expectedNaturalNotes = [
         Note.one,
         Note.two,
-	Note.three,
+        Note.three,
         Note.four,
         Note.five,
-	Note.six,
+        Note.six,
         Note.seven,
       ];
 
@@ -54,7 +54,13 @@ void main() {
     });
 
     test('returns empty list when there are no natural notes', () {
-      final notes = [Note.flatTwo, Note.flatThree, Note.sharpFour, Note.flatSix, Note.flatSeven];
+      final notes = [
+        Note.flatTwo,
+        Note.flatThree,
+        Note.sharpFour,
+        Note.flatSix,
+        Note.flatSeven
+      ];
 
       expect(naturalNotes(notes), isEmpty);
     });
@@ -67,12 +73,12 @@ void main() {
         Note.flatTwo,
         Note.two,
         Note.flatThree,
-	Note.three,
+        Note.three,
         Note.four,
         Note.sharpFour,
         Note.five,
         Note.flatSix,
-	Note.six,
+        Note.six,
         Note.flatSeven,
         Note.seven,
       ];

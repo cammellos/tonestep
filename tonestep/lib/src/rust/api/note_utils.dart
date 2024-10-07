@@ -9,9 +9,9 @@ bool isNaturalNote(Note note) {
     case Note.five:
     case Note.six:
     case Note.seven:
-	return true;
+      return true;
     default:
-        return false;
+      return false;
   }
 }
 
@@ -26,30 +26,30 @@ List<Note> alteredNotes(List<Note> notes) {
 String toString(Note note) {
   switch (note) {
     case Note.one:
-	return '1';
+      return '1';
     case Note.flatTwo:
-	return 'b2';
+      return 'b2';
     case Note.two:
-        return '2';
+      return '2';
     case Note.three:
-        return '3';
+      return '3';
     case Note.flatThree:
-        return 'b3';
+      return 'b3';
     case Note.four:
-	return '4';
+      return '4';
     case Note.sharpFour:
-	return '#4';
+      return '#4';
     case Note.five:
-	return '5';
+      return '5';
     case Note.flatSix:
-	return 'b6';
+      return 'b6';
     case Note.six:
-        return '6';
+      return '6';
     case Note.flatSeven:
-	return 'b7';
+      return 'b7';
     case Note.seven:
-	return '7';
+      return '7';
     default:
-        throw Exception('invalid note $note');
+      throw Exception('invalid note $note');
   }
 }

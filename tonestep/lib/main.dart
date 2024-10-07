@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:tonestep/src/rust/api/notes.dart' as notes;
-import 'package:tonestep/src/rust/api/note_utils.dart' as noteUtils;
+import 'package:tonestep/src/rust/api/note_utils.dart' as note_utils;
 import 'package:tonestep/src/rust/frb_generated.dart';
 
 Future<void> main() async {
@@ -21,14 +21,13 @@ class ToneStep extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-      return MaterialApp(
-	home: Scaffold(
-	  appBar: AppBar(title: const Text('Musical Notes')),
-	  body:const  HomeScreen(),
-	),
-      );
-    }
-
+    return MaterialApp(
+      home: Scaffold(
+        appBar: AppBar(title: const Text('Musical Notes')),
+        body: const HomeScreen(),
+      ),
+    );
+  }
 }
 
 class HomeScreen extends StatelessWidget {
@@ -55,9 +54,9 @@ class HomeScreen extends StatelessWidget {
 class CreateNewExerciseScreen extends StatefulWidget {
   const CreateNewExerciseScreen({super.key});
 
-
   @override
-  State<CreateNewExerciseScreen> createState() => _CreateNewExerciseScreenState();
+  State<CreateNewExerciseScreen> createState() =>
+      _CreateNewExerciseScreenState();
 }
 
 class _CreateNewExerciseScreenState extends State<CreateNewExerciseScreen> {
@@ -69,38 +68,39 @@ class _CreateNewExerciseScreenState extends State<CreateNewExerciseScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('New Exercise')),
       body: FutureBuilder<List<notes.Note>>(
-	    future: notesProvider.getAllNotes(),
-	    builder: (context, snapshot) {
-	      if (snapshot.connectionState == ConnectionState.waiting) {
-		return const CircularProgressIndicator();
-	      } else if (snapshot.hasError) {
-		return Text('Error: ${snapshot.error}');
-	      } else if (snapshot.hasData) {
-	        List<notes.Note> allNotes = snapshot.data ?? [];
-		return Row(
-		  mainAxisAlignment: MainAxisAlignment.center,
-		  children: noteUtils.naturalNotes(allNotes).map((note)  {
-		    return Expanded(child: SquareCell(selected: this.selectedNotes.contains(note), note: note,  onPressed: ()  {
-		      setState(() {
-			if (this.selectedNotes.contains(note)) {
-			  this.selectedNotes.remove(note);
-			} else {
-			  this.selectedNotes.add(note);
-			}
-			});
-
-		    }));
-		    }).toList());
-
-	      } else {
-		return const Text('No notes available');
-	      }
-	    },
-	  ),
+        future: notesProvider.getAllNotes(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const CircularProgressIndicator();
+          } else if (snapshot.hasError) {
+            return Text('Error: ${snapshot.error}');
+          } else if (snapshot.hasData) {
+            List<notes.Note> allNotes = snapshot.data ?? [];
+            return Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: note_utils.naturalNotes(allNotes).map((note) {
+                  return Expanded(
+                      child: SquareCell(
+                          selected: selectedNotes.contains(note),
+                          note: note,
+                          onPressed: () {
+                            setState(() {
+                              if (selectedNotes.contains(note)) {
+                                selectedNotes.remove(note);
+                              } else {
+                                selectedNotes.add(note);
+                              }
+                            });
+                          }));
+                }).toList());
+          } else {
+            return const Text('No notes available');
+          }
+        },
+      ),
     );
   }
 }
-
 
 class SquareCell extends StatelessWidget {
   const SquareCell({
@@ -122,13 +122,14 @@ class SquareCell extends StatelessWidget {
 
         return Container(
           width: cellSize,
-	  margin: const EdgeInsets.all(10.0),
+          margin: const EdgeInsets.all(10.0),
           height: cellSize, // Make the height equal to the width for a square
-          color: this.selected ? Colors.blue : Colors.green, // Color of the cell
+          color:
+              selected ? Colors.blue : Colors.green, // Color of the cell
           child: TextButton(
-	    onPressed: onPressed,
+            onPressed: onPressed,
             child: Text(
-              noteUtils.toString(note),
+              note_utils.toString(note),
               style: const TextStyle(color: Colors.white),
             ),
           ),
@@ -137,5 +138,3 @@ class SquareCell extends StatelessWidget {
     );
   }
 }
-
-
