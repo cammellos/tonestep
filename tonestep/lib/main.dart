@@ -62,6 +62,7 @@ class CreateNewExerciseScreen extends StatefulWidget {
 class _CreateNewExerciseScreenState extends State<CreateNewExerciseScreen> {
   final NotesProvider notesProvider = NotesProvider();
   var selectedNotes = <notes.Note>{};
+  bool _isInitialized = false;
 
   @override
   Widget build(BuildContext context) {
@@ -76,6 +77,11 @@ class _CreateNewExerciseScreenState extends State<CreateNewExerciseScreen> {
             return Text('Error: ${snapshot.error}');
           } else if (snapshot.hasData) {
             List<notes.Note> allNotes = snapshot.data ?? [];
+	    if (!_isInitialized) {
+	      selectedNotes.addAll(allNotes);
+	      _isInitialized = true;
+	    }
+
             return Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -112,7 +118,17 @@ class _CreateNewExerciseScreenState extends State<CreateNewExerciseScreen> {
                                     }
                                   });
                                 }));
-                      }).toList())
+                      }).toList()),
+		  Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+		      children: [
+		      TextButton(
+		        onPressed: () => {print(selectedNotes)},
+			child: const Text('Create exercise')
+
+		      )
+		      ]
+		    )
                 ]);
           } else {
             return const Text('No notes available');
@@ -145,7 +161,7 @@ class SquareCell extends StatelessWidget {
           width: cellSize,
           margin: const EdgeInsets.all(10.0),
           height: cellSize, // Make the height equal to the width for a square
-          color: selected ? Colors.blue : Colors.green, // Color of the cell
+          color: selected ? Colors.green : Colors.grey, // Color of the cell
           child: TextButton(
             onPressed: onPressed,
             child: Text(
