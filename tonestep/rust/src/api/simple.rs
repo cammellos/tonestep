@@ -3,6 +3,8 @@ use std::f32::consts::PI;
 use std::ffi::c_void;
 use std::time::{Duration, Instant};
 
+use crate::api::notes::{Exercise, Note};
+
 #[flutter_rust_bridge::frb(sync)] // Synchronous mode for simplicity of the demo
 pub fn greet(name: String) -> String {
     format!("Hello, {name}!")
@@ -14,6 +16,11 @@ pub fn init_app() {
     flutter_rust_bridge::setup_default_user_utils();
 }
 
+// seconds ramping up
+// 4 seconds note
+// 1 second pause
+// 2 seconds solution
+// 4 seconds note
 pub fn play_sound() {
     let host = cpal::default_host();
     let device = host
@@ -51,9 +58,22 @@ pub fn play_sound() {
         .unwrap();
 
     stream.play().unwrap();
+}
 
-    // Keep the application running while the sound is playing
-    std::thread::sleep(std::time::Duration::from_secs(20));
+struct Player {
+    exercise: Exercise,
+    start_time: Instant,
+}
+
+impl Player {
+    fn new(exercise: Exercise) -> Player {
+        let start_time = Instant::now();
+        Player {
+            exercise,
+            start_time,
+        }
+    }
+    fn write_data<T>(data: &mut [T]) {}
 }
 
 fn write_data_timed<T>(
@@ -109,4 +129,64 @@ fn write_data_timed<T>(
 
 fn err_fn(err: cpal::StreamError) {
     eprintln!("Error: {:?}", err);
+}
+
+fn generate_piano_frequency(n: i32) -> f32 {
+    // A4 is the 49th key, frequency is 440 Hz
+    let a4_key = 49;
+    let a4_frequency = 440.0;
+
+    a4_frequency * 2.0_f32.powf((n - a4_key) as f32 / 12.0)
+}
+
+fn root_note_to_frequency(note: Note) -> f32 {
+    return generate_piano_frequency(note.to_keyboard_c1_note());
+}
+
+fn exercise_note_to_frequency(note: Note) -> f32 {
+    return generate_piano_frequency(note.to_keyboard_c5_note());
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use test_log::test;
+
+    #[test]
+    fn test_player_new() {
+        //let player = Player::new();
+        assert!(true);
+    }
+
+    #[test]
+    fn test_root_note_to_frequency() {
+        assert_eq!(32.703194, root_note_to_frequency(Note::One));
+        assert_eq!(34.647827, root_note_to_frequency(Note::FlatTwo));
+        assert_eq!(36.7081, root_note_to_frequency(Note::Two));
+        assert_eq!(38.890873, root_note_to_frequency(Note::FlatThree));
+        assert_eq!(41.20344, root_note_to_frequency(Note::Three));
+        assert_eq!(43.65353, root_note_to_frequency(Note::Four));
+        assert_eq!(46.249302, root_note_to_frequency(Note::SharpFour));
+        assert_eq!(48.999424, root_note_to_frequency(Note::Five));
+        assert_eq!(51.91309, root_note_to_frequency(Note::FlatSix));
+        assert_eq!(55.0, root_note_to_frequency(Note::Six));
+        assert_eq!(58.270466, root_note_to_frequency(Note::FlatSeven));
+        assert_eq!(61.73542, root_note_to_frequency(Note::Seven));
+    }
+
+    #[test]
+    fn test_exercise_note_to_frequency() {
+        assert_eq!(523.2511, exercise_note_to_frequency(Note::One));
+        assert_eq!(554.3653, exercise_note_to_frequency(Note::FlatTwo));
+        assert_eq!(587.3295, exercise_note_to_frequency(Note::Two));
+        assert_eq!(622.25397, exercise_note_to_frequency(Note::FlatThree));
+        assert_eq!(659.2551, exercise_note_to_frequency(Note::Three));
+        assert_eq!(698.4565, exercise_note_to_frequency(Note::Four));
+        assert_eq!(739.98883, exercise_note_to_frequency(Note::SharpFour));
+        assert_eq!(783.99084, exercise_note_to_frequency(Note::Five));
+        assert_eq!(830.6094, exercise_note_to_frequency(Note::FlatSix));
+        assert_eq!(880.0, exercise_note_to_frequency(Note::Six));
+        assert_eq!(932.3276, exercise_note_to_frequency(Note::FlatSeven));
+        assert_eq!(987.7666, exercise_note_to_frequency(Note::Seven));
+    }
 }

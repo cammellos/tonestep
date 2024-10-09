@@ -1,5 +1,8 @@
+use std::collections::HashSet;
+use std::time::Instant;
+
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Hash, Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Note {
     One,
     FlatTwo,
@@ -13,6 +16,33 @@ pub enum Note {
     Six,
     FlatSeven,
     Seven,
+}
+
+impl Note {
+    fn to_keyboard_note(&self) -> i32 {
+        match self {
+            Note::One => 1,
+            Note::FlatTwo => 2,
+            Note::Two => 3,
+            Note::FlatThree => 4,
+            Note::Three => 5,
+            Note::Four => 6,
+            Note::SharpFour => 7,
+            Note::Five => 8,
+            Note::FlatSix => 9,
+            Note::Six => 10,
+            Note::FlatSeven => 11,
+            Note::Seven => 12,
+        }
+    }
+
+    pub fn to_keyboard_c1_note(&self) -> i32 {
+        self.to_keyboard_note() + 3
+    }
+
+    pub fn to_keyboard_c5_note(&self) -> i32 {
+        self.to_keyboard_note() + 51
+    }
 }
 
 // Convert the enum to a displayable string
@@ -53,3 +83,11 @@ pub fn get_all_notes() -> Vec<Note> {
         Note::Seven,
     ]
 }
+
+pub struct Exercise {
+    pub root_note: Note,
+    pub exercise_note: Note,
+}
+
+pub fn stop() -> () {}
+pub fn play_exercise(exercise: Exercise) -> () {}
