@@ -104,9 +104,15 @@ pub fn get_all_notes() -> Vec<Note> {
 }
 
 pub struct Exercise {
-    pub root_note: Note,
-    pub exercise_note: Note,
+    pub root: Note,
+    pub relative: Note,
+}
+
+impl Exercise {
+    pub fn new(root: Note, relative: Note) -> Exercise {
+        Exercise { root, relative }
+    }
 }
 
 pub fn stop() -> () {}
-pub fn play_exercise(exercise: Exercise) -> () {}
+pub fn play_exercise() -> () {}

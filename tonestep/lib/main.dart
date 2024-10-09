@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:tonestep/src/rust/api/notes.dart' as notes;
+import 'package:tonestep/src/rust/api/simple.dart' as api;
 import 'package:tonestep/src/rust/api/note_utils.dart' as note_utils;
 import 'package:tonestep/src/rust/frb_generated.dart';
 
@@ -124,7 +125,7 @@ class _CreateNewExerciseScreenState extends State<CreateNewExerciseScreen> {
 		      children: [
 		      TextButton(
 		        onPressed: () {
-			  notes.playExercise(exercise: notes.Exercise(selectedNotes: selectedNotes));
+			  api.playSound();
 
 			  },
 			child: const Text('Play')

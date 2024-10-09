@@ -22,6 +22,9 @@ pub fn init_app() {
 // 2 seconds solution
 // 4 seconds note
 pub fn play_sound() {
+    let exercise = Exercise::new(Note::Three, Note::One);
+    let mut player = Player::new(exercise);
+
     let host = cpal::default_host();
     let device = host
         .default_output_device()
@@ -32,36 +35,22 @@ pub fn play_sound() {
         buffer_size: cpal::BufferSize::Default,
     };
 
-    let sample_rate = config.sample_rate.0 as f32;
-    let frequency1 = 440.0; // Main tone frequency (A4)
-    let frequency2 = 523.25; // Second tone frequency (C5)
-    let mut sample_clock = 0f32;
-
-    // Start the timer
-    let start_time = Instant::now();
-
     let stream = device
         .build_output_stream(
             &config.into(),
-            move |data: &mut [f32], _| {
-                write_data_timed(
-                    data,
-                    sample_rate,
-                    frequency1,
-                    frequency2,
-                    &mut sample_clock,
-                    &start_time,
-                );
-            },
+            move |data: &mut [f32], _| player.write_data_timed(data),
             err_fn,
         )
         .unwrap();
 
     stream.play().unwrap();
+
+    std::thread::sleep(std::time::Duration::from_secs(20));
 }
 
 struct Player {
     exercise: Exercise,
+    sample_clock: f32,
     start_time: Instant,
 }
 
@@ -71,59 +60,62 @@ impl Player {
         Player {
             exercise,
             start_time,
+            sample_clock: 0.0,
         }
     }
-    fn write_data<T>(data: &mut [T]) {}
-}
 
-fn write_data_timed<T>(
-    data: &mut [T],
-    sample_rate: f32,
-    frequency1: f32,
-    frequency2: f32,
-    sample_clock: &mut f32,
-    start_time: &Instant,
-) where
-    T: cpal::Sample,
-{
-    let amplitude1 = 0.05; // Reduced volume for the first tone
-    let amplitude2 = 0.05; // Reduced volume for the second tone
-    let mut iter = data.chunks_exact_mut(2); // Stereo (left, right)
+    fn write_data_timed(&mut self, data: &mut [f32]) {
+        let amplitude1 = 0.8; // Reduced volume for the first tone
+        let amplitude2 = 0.8; // Reduced volume for the second tone
+        let mut iter = data.chunks_exact_mut(2); // Stereo (left, right)
 
-    let elapsed = start_time.elapsed(); // Get the elapsed time since the stream started
+        let frequency1 = root_note_to_frequency(self.exercise.root);
 
-    for frame in iter.by_ref() {
-        // First tone (always plays)
-        let value1 = if elapsed < Duration::from_secs(20) {
-            (2.0 * PI * frequency1 * *sample_clock / sample_rate).sin() * amplitude1
-        } else {
-            0.0 // Stop first tone after 5 seconds
-        };
+        let frequency2 = relative_note_to_frequency(relative_note_to_absolute(
+            self.exercise.root,
+            self.exercise.relative,
+        ));
+        let elapsed = self.start_time.elapsed(); // Get the elapsed time since the stream started
+        let sample_rate = cpal::SampleRate(48000).0 as f32;
 
-        // Second tone (starts after 1 second, stops after 3 seconds)
-        let value2 = if elapsed >= Duration::from_secs(1) && elapsed < Duration::from_secs(4) {
-            (2.0 * PI * frequency2 * *sample_clock / sample_rate).sin() * amplitude2
-        } else {
-            0.0 // Silence for the second tone
-        };
+        for frame in iter.by_ref() {
+            // First tone (always plays)
+            let value1 = if elapsed < Duration::from_secs(20) {
+                let harmonic1 = (2.0 * PI * (frequency1 * 2.0) * self.sample_clock / sample_rate)
+                    .sin()
+                    * amplitude1
+                    * 0.2; // Octave harmonic
+                (2.0 * PI * frequency1 * self.sample_clock / sample_rate).sin() * amplitude1
+                    + harmonic1
+            } else {
+                0.0 // Stop first tone after 5 seconds
+            };
 
-        // Combine the two signals
-        let combined_left = (value1 + value2) * 0.5;
-        let combined_right = (value1 + value2) * 0.5;
+            // Second tone (starts after 1 second, stops after 3 seconds)
+            let value2 = if elapsed >= Duration::from_secs(4) && elapsed < Duration::from_secs(8) {
+                (2.0 * PI * frequency2 * self.sample_clock / sample_rate).sin() * amplitude2
+            } else {
+                0.0 // Silence for the second tone
+            };
 
-        // Normalize to prevent clipping (keep values within [-1.0, 1.0])
-        let max_value = combined_left.abs().max(combined_right.abs());
-        let normalization_factor = if max_value > 1.0 {
-            1.0 / max_value
-        } else {
-            1.0
-        };
+            // Combine the two signals
+            let combined_left = (value1 + value2) * 0.5;
+            let combined_right = (value1 + value2) * 0.5;
 
-        // Apply the normalization factor to avoid clipping
-        frame[0] = cpal::Sample::from(&(combined_left * normalization_factor as f32)); // Left channel
-        frame[1] = cpal::Sample::from(&(combined_right * normalization_factor as f32)); // Right channel
+            // Normalize to prevent clipping (keep values within [-1.0, 1.0])
+            let max_value = combined_left.abs().max(combined_right.abs());
+            let normalization_factor = if max_value > 1.0 {
+                1.0 / max_value
+            } else {
+                1.0
+            };
 
-        *sample_clock = (*sample_clock + 1.0) % sample_rate;
+            // Apply the normalization factor to avoid clipping
+            frame[0] = cpal::Sample::from(&(combined_left * normalization_factor as f32)); // Left channel
+            frame[1] = cpal::Sample::from(&(combined_right * normalization_factor as f32)); // Right channel
+
+            self.sample_clock = self.sample_clock + 1.0;
+        }
     }
 }
 
@@ -143,7 +135,7 @@ fn root_note_to_frequency(note: Note) -> f32 {
     return generate_piano_frequency(note.to_keyboard_c1_note());
 }
 
-fn exercise_note_to_frequency(note: Note) -> f32 {
+fn relative_note_to_frequency(note: Note) -> f32 {
     return generate_piano_frequency(note.to_keyboard_c5_note());
 }
 
@@ -159,8 +151,9 @@ mod tests {
 
     #[test]
     fn test_player_new() {
-        //let player = Player::new();
-        assert!(true);
+        let exercise = Exercise::new(Note::Three, Note::One);
+        let player = Player::new(exercise);
+        assert!(false);
     }
 
     #[test]
@@ -180,19 +173,19 @@ mod tests {
     }
 
     #[test]
-    fn test_exercise_note_to_frequency() {
-        assert_eq!(523.2511, exercise_note_to_frequency(Note::One));
-        assert_eq!(554.3653, exercise_note_to_frequency(Note::FlatTwo));
-        assert_eq!(587.3295, exercise_note_to_frequency(Note::Two));
-        assert_eq!(622.25397, exercise_note_to_frequency(Note::FlatThree));
-        assert_eq!(659.2551, exercise_note_to_frequency(Note::Three));
-        assert_eq!(698.4565, exercise_note_to_frequency(Note::Four));
-        assert_eq!(739.98883, exercise_note_to_frequency(Note::SharpFour));
-        assert_eq!(783.99084, exercise_note_to_frequency(Note::Five));
-        assert_eq!(830.6094, exercise_note_to_frequency(Note::FlatSix));
-        assert_eq!(880.0, exercise_note_to_frequency(Note::Six));
-        assert_eq!(932.3276, exercise_note_to_frequency(Note::FlatSeven));
-        assert_eq!(987.7666, exercise_note_to_frequency(Note::Seven));
+    fn test_relative_note_to_frequency() {
+        assert_eq!(523.2511, relative_note_to_frequency(Note::One));
+        assert_eq!(554.3653, relative_note_to_frequency(Note::FlatTwo));
+        assert_eq!(587.3295, relative_note_to_frequency(Note::Two));
+        assert_eq!(622.25397, relative_note_to_frequency(Note::FlatThree));
+        assert_eq!(659.2551, relative_note_to_frequency(Note::Three));
+        assert_eq!(698.4565, relative_note_to_frequency(Note::Four));
+        assert_eq!(739.98883, relative_note_to_frequency(Note::SharpFour));
+        assert_eq!(783.99084, relative_note_to_frequency(Note::Five));
+        assert_eq!(830.6094, relative_note_to_frequency(Note::FlatSix));
+        assert_eq!(880.0, relative_note_to_frequency(Note::Six));
+        assert_eq!(932.3276, relative_note_to_frequency(Note::FlatSeven));
+        assert_eq!(987.7666, relative_note_to_frequency(Note::Seven));
     }
 
     #[test]

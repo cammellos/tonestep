@@ -8,485 +8,481 @@ import 'api/simple.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'frb_generated.dart';
-import 'frb_generated.io.dart'
-    if (dart.library.js_interop) 'frb_generated.web.dart';
+import 'frb_generated.io.dart' if (dart.library.js_interop) 'frb_generated.web.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-/// Main entrypoint of the Rust API
-class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
-  @internal
-  static final instance = RustLib._();
-
-  RustLib._();
-
-  /// Initialize flutter_rust_bridge
-  static Future<void> init({
-    RustLibApi? api,
-    BaseHandler? handler,
-    ExternalLibrary? externalLibrary,
-  }) async {
-    await instance.initImpl(
-      api: api,
-      handler: handler,
-      externalLibrary: externalLibrary,
-    );
-  }
-
-  /// Initialize flutter_rust_bridge in mock mode.
-  /// No libraries for FFI are loaded.
-  static void initMock({
-    required RustLibApi api,
-  }) {
-    instance.initMockImpl(
-      api: api,
-    );
-  }
-
-  /// Dispose flutter_rust_bridge
-  ///
-  /// The call to this function is optional, since flutter_rust_bridge (and everything else)
-  /// is automatically disposed when the app stops.
-  static void dispose() => instance.disposeImpl();
-
-  @override
-  ApiImplConstructor<RustLibApiImpl, RustLibWire> get apiImplConstructor =>
-      RustLibApiImpl.new;
-
-  @override
-  WireConstructor<RustLibWire> get wireConstructor =>
-      RustLibWire.fromExternalLibrary;
-
-  @override
-  Future<void> executeRustInitializers() async {
-    await api.crateApiSimpleInitApp();
-  }
-
-  @override
-  ExternalLibraryLoaderConfig get defaultExternalLibraryLoaderConfig =>
-      kDefaultExternalLibraryLoaderConfig;
-
-  @override
-  String get codegenVersion => '2.5.0';
-
-  @override
-  int get rustContentHash => 2100167767;
-
-  static const kDefaultExternalLibraryLoaderConfig =
-      ExternalLibraryLoaderConfig(
-    stem: 'rust_lib_tonestep',
-    ioDirectory: 'rust/target/release/',
-    webPrefix: 'pkg/',
-  );
-}
-
-abstract class RustLibApi extends BaseApi {
-  Future<List<Note>> crateApiNotesGetAllNotes();
-
-  Future<int> crateApiNotesNoteToKeyboardC1Note({required Note that});
-
-  Future<int> crateApiNotesNoteToKeyboardC5Note({required Note that});
-
-  Future<void> crateApiNotesPlayExercise({required Exercise exercise});
-
-  Future<void> crateApiNotesStop();
-
-  String crateApiSimpleGreet({required String name});
-
-  Future<void> crateApiSimpleInitApp();
-
-  Future<void> crateApiSimplePlaySound();
-}
-
-class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
-  RustLibApiImpl({
-    required super.handler,
-    required super.wire,
-    required super.generalizedFrbRustBinding,
-    required super.portManager,
-  });
-
-  @override
-  Future<List<Note>> crateApiNotesGetAllNotes() {
-    return handler.executeNormal(NormalTask(
-      callFfi: (port_) {
-        final serializer = SseSerializer(generalizedFrbRustBinding);
-        pdeCallFfi(generalizedFrbRustBinding, serializer,
-            funcId: 1, port: port_);
-      },
-      codec: SseCodec(
-        decodeSuccessData: sse_decode_list_note,
-        decodeErrorData: null,
-      ),
-      constMeta: kCrateApiNotesGetAllNotesConstMeta,
-      argValues: [],
-      apiImpl: this,
-    ));
-  }
-
-  TaskConstMeta get kCrateApiNotesGetAllNotesConstMeta => const TaskConstMeta(
-        debugName: "get_all_notes",
-        argNames: [],
-      );
-
-  @override
-  Future<int> crateApiNotesNoteToKeyboardC1Note({required Note that}) {
-    return handler.executeNormal(NormalTask(
-      callFfi: (port_) {
-        final serializer = SseSerializer(generalizedFrbRustBinding);
-        sse_encode_note(that, serializer);
-        pdeCallFfi(generalizedFrbRustBinding, serializer,
-            funcId: 2, port: port_);
-      },
-      codec: SseCodec(
-        decodeSuccessData: sse_decode_i_32,
-        decodeErrorData: null,
-      ),
-      constMeta: kCrateApiNotesNoteToKeyboardC1NoteConstMeta,
-      argValues: [that],
-      apiImpl: this,
-    ));
-  }
-
-  TaskConstMeta get kCrateApiNotesNoteToKeyboardC1NoteConstMeta =>
-      const TaskConstMeta(
-        debugName: "note_to_keyboard_c1_note",
-        argNames: ["that"],
-      );
-
-  @override
-  Future<int> crateApiNotesNoteToKeyboardC5Note({required Note that}) {
-    return handler.executeNormal(NormalTask(
-      callFfi: (port_) {
-        final serializer = SseSerializer(generalizedFrbRustBinding);
-        sse_encode_note(that, serializer);
-        pdeCallFfi(generalizedFrbRustBinding, serializer,
-            funcId: 3, port: port_);
-      },
-      codec: SseCodec(
-        decodeSuccessData: sse_decode_i_32,
-        decodeErrorData: null,
-      ),
-      constMeta: kCrateApiNotesNoteToKeyboardC5NoteConstMeta,
-      argValues: [that],
-      apiImpl: this,
-    ));
-  }
-
-  TaskConstMeta get kCrateApiNotesNoteToKeyboardC5NoteConstMeta =>
-      const TaskConstMeta(
-        debugName: "note_to_keyboard_c5_note",
-        argNames: ["that"],
-      );
-
-  @override
-  Future<void> crateApiNotesPlayExercise({required Exercise exercise}) {
-    return handler.executeNormal(NormalTask(
-      callFfi: (port_) {
-        final serializer = SseSerializer(generalizedFrbRustBinding);
-        sse_encode_box_autoadd_exercise(exercise, serializer);
-        pdeCallFfi(generalizedFrbRustBinding, serializer,
-            funcId: 4, port: port_);
-      },
-      codec: SseCodec(
-        decodeSuccessData: sse_decode_unit,
-        decodeErrorData: null,
-      ),
-      constMeta: kCrateApiNotesPlayExerciseConstMeta,
-      argValues: [exercise],
-      apiImpl: this,
-    ));
-  }
-
-  TaskConstMeta get kCrateApiNotesPlayExerciseConstMeta => const TaskConstMeta(
-        debugName: "play_exercise",
-        argNames: ["exercise"],
-      );
-
-  @override
-  Future<void> crateApiNotesStop() {
-    return handler.executeNormal(NormalTask(
-      callFfi: (port_) {
-        final serializer = SseSerializer(generalizedFrbRustBinding);
-        pdeCallFfi(generalizedFrbRustBinding, serializer,
-            funcId: 5, port: port_);
-      },
-      codec: SseCodec(
-        decodeSuccessData: sse_decode_unit,
-        decodeErrorData: null,
-      ),
-      constMeta: kCrateApiNotesStopConstMeta,
-      argValues: [],
-      apiImpl: this,
-    ));
-  }
-
-  TaskConstMeta get kCrateApiNotesStopConstMeta => const TaskConstMeta(
-        debugName: "stop",
-        argNames: [],
-      );
-
-  @override
-  String crateApiSimpleGreet({required String name}) {
-    return handler.executeSync(SyncTask(
-      callFfi: () {
-        final serializer = SseSerializer(generalizedFrbRustBinding);
-        sse_encode_String(name, serializer);
-        return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 6)!;
-      },
-      codec: SseCodec(
-        decodeSuccessData: sse_decode_String,
-        decodeErrorData: null,
-      ),
-      constMeta: kCrateApiSimpleGreetConstMeta,
-      argValues: [name],
-      apiImpl: this,
-    ));
-  }
-
-  TaskConstMeta get kCrateApiSimpleGreetConstMeta => const TaskConstMeta(
-        debugName: "greet",
-        argNames: ["name"],
-      );
-
-  @override
-  Future<void> crateApiSimpleInitApp() {
-    return handler.executeNormal(NormalTask(
-      callFfi: (port_) {
-        final serializer = SseSerializer(generalizedFrbRustBinding);
-        pdeCallFfi(generalizedFrbRustBinding, serializer,
-            funcId: 7, port: port_);
-      },
-      codec: SseCodec(
-        decodeSuccessData: sse_decode_unit,
-        decodeErrorData: null,
-      ),
-      constMeta: kCrateApiSimpleInitAppConstMeta,
-      argValues: [],
-      apiImpl: this,
-    ));
-  }
-
-  TaskConstMeta get kCrateApiSimpleInitAppConstMeta => const TaskConstMeta(
-        debugName: "init_app",
-        argNames: [],
-      );
-
-  @override
-  Future<void> crateApiSimplePlaySound() {
-    return handler.executeNormal(NormalTask(
-      callFfi: (port_) {
-        final serializer = SseSerializer(generalizedFrbRustBinding);
-        pdeCallFfi(generalizedFrbRustBinding, serializer,
-            funcId: 8, port: port_);
-      },
-      codec: SseCodec(
-        decodeSuccessData: sse_decode_unit,
-        decodeErrorData: null,
-      ),
-      constMeta: kCrateApiSimplePlaySoundConstMeta,
-      argValues: [],
-      apiImpl: this,
-    ));
-  }
-
-  TaskConstMeta get kCrateApiSimplePlaySoundConstMeta => const TaskConstMeta(
-        debugName: "play_sound",
-        argNames: [],
-      );
-
-  @protected
-  String dco_decode_String(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    return raw as String;
-  }
-
-  @protected
-  Exercise dco_decode_box_autoadd_exercise(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    return dco_decode_exercise(raw);
-  }
-
-  @protected
-  Exercise dco_decode_exercise(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    final arr = raw as List<dynamic>;
-    if (arr.length != 2)
-      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
-    return Exercise(
-      rootNote: dco_decode_note(arr[0]),
-      exerciseNote: dco_decode_note(arr[1]),
-    );
-  }
-
-  @protected
-  int dco_decode_i_32(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    return raw as int;
-  }
-
-  @protected
-  List<Note> dco_decode_list_note(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    return (raw as List<dynamic>).map(dco_decode_note).toList();
-  }
-
-  @protected
-  Uint8List dco_decode_list_prim_u_8_strict(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    return raw as Uint8List;
-  }
-
-  @protected
-  Note dco_decode_note(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    return Note.values[raw as int];
-  }
-
-  @protected
-  int dco_decode_u_8(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    return raw as int;
-  }
-
-  @protected
-  void dco_decode_unit(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    return;
-  }
-
-  @protected
-  String sse_decode_String(SseDeserializer deserializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    var inner = sse_decode_list_prim_u_8_strict(deserializer);
-    return utf8.decoder.convert(inner);
-  }
-
-  @protected
-  Exercise sse_decode_box_autoadd_exercise(SseDeserializer deserializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    return (sse_decode_exercise(deserializer));
-  }
-
-  @protected
-  Exercise sse_decode_exercise(SseDeserializer deserializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    var var_rootNote = sse_decode_note(deserializer);
-    var var_exerciseNote = sse_decode_note(deserializer);
-    return Exercise(rootNote: var_rootNote, exerciseNote: var_exerciseNote);
-  }
-
-  @protected
-  int sse_decode_i_32(SseDeserializer deserializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    return deserializer.buffer.getInt32();
-  }
-
-  @protected
-  List<Note> sse_decode_list_note(SseDeserializer deserializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-
-    var len_ = sse_decode_i_32(deserializer);
-    var ans_ = <Note>[];
-    for (var idx_ = 0; idx_ < len_; ++idx_) {
-      ans_.add(sse_decode_note(deserializer));
-    }
-    return ans_;
-  }
-
-  @protected
-  Uint8List sse_decode_list_prim_u_8_strict(SseDeserializer deserializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    var len_ = sse_decode_i_32(deserializer);
-    return deserializer.buffer.getUint8List(len_);
-  }
-
-  @protected
-  Note sse_decode_note(SseDeserializer deserializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    var inner = sse_decode_i_32(deserializer);
-    return Note.values[inner];
-  }
-
-  @protected
-  int sse_decode_u_8(SseDeserializer deserializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    return deserializer.buffer.getUint8();
-  }
-
-  @protected
-  void sse_decode_unit(SseDeserializer deserializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-  }
-
-  @protected
-  bool sse_decode_bool(SseDeserializer deserializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    return deserializer.buffer.getUint8() != 0;
-  }
-
-  @protected
-  void sse_encode_String(String self, SseSerializer serializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_list_prim_u_8_strict(utf8.encoder.convert(self), serializer);
-  }
-
-  @protected
-  void sse_encode_box_autoadd_exercise(
-      Exercise self, SseSerializer serializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_exercise(self, serializer);
-  }
-
-  @protected
-  void sse_encode_exercise(Exercise self, SseSerializer serializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_note(self.rootNote, serializer);
-    sse_encode_note(self.exerciseNote, serializer);
-  }
-
-  @protected
-  void sse_encode_i_32(int self, SseSerializer serializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    serializer.buffer.putInt32(self);
-  }
-
-  @protected
-  void sse_encode_list_note(List<Note> self, SseSerializer serializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_i_32(self.length, serializer);
-    for (final item in self) {
-      sse_encode_note(item, serializer);
-    }
-  }
-
-  @protected
-  void sse_encode_list_prim_u_8_strict(
-      Uint8List self, SseSerializer serializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_i_32(self.length, serializer);
-    serializer.buffer.putUint8List(self);
-  }
-
-  @protected
-  void sse_encode_note(Note self, SseSerializer serializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_i_32(self.index, serializer);
-  }
-
-  @protected
-  void sse_encode_u_8(int self, SseSerializer serializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    serializer.buffer.putUint8(self);
-  }
-
-  @protected
-  void sse_encode_unit(void self, SseSerializer serializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-  }
-
-  @protected
-  void sse_encode_bool(bool self, SseSerializer serializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    serializer.buffer.putUint8(self ? 1 : 0);
-  }
-}
+
+                /// Main entrypoint of the Rust API
+                class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
+                  @internal
+                  static final instance = RustLib._();
+
+                  RustLib._();
+
+                  /// Initialize flutter_rust_bridge
+                  static Future<void> init({
+                    RustLibApi? api,
+                    BaseHandler? handler,
+                    ExternalLibrary? externalLibrary,
+                  }) async {
+                    await instance.initImpl(
+                      api: api,
+                      handler: handler,
+                      externalLibrary: externalLibrary,
+                    );
+                  }
+
+                  /// Initialize flutter_rust_bridge in mock mode.
+                  /// No libraries for FFI are loaded.
+                  static void initMock({
+                    required RustLibApi api,
+                  }) {
+                    instance.initMockImpl(
+                      api: api,
+                    );
+                  }
+
+                  /// Dispose flutter_rust_bridge
+                  ///
+                  /// The call to this function is optional, since flutter_rust_bridge (and everything else)
+                  /// is automatically disposed when the app stops.
+                  static void dispose() => instance.disposeImpl();
+
+                  @override
+                  ApiImplConstructor<RustLibApiImpl, RustLibWire> get apiImplConstructor => RustLibApiImpl.new;
+
+                  @override
+                  WireConstructor<RustLibWire> get wireConstructor => RustLibWire.fromExternalLibrary;
+
+                  @override
+                  Future<void> executeRustInitializers() async {
+                    await api.crateApiSimpleInitApp();
+
+                  }
+
+                  @override
+                  ExternalLibraryLoaderConfig get defaultExternalLibraryLoaderConfig => kDefaultExternalLibraryLoaderConfig;
+
+                  @override
+                  String get codegenVersion => '2.5.0';
+
+                  @override
+                  int get rustContentHash => 544844272;
+
+                  static const kDefaultExternalLibraryLoaderConfig = ExternalLibraryLoaderConfig(
+                    stem: 'rust_lib_tonestep',
+                    ioDirectory: 'rust/target/release/',
+                    webPrefix: 'pkg/',
+                  );
+                }
+                
+
+                abstract class RustLibApi extends BaseApi {
+                  Future<Exercise> crateApiNotesExerciseNew({required Note root , required Note relative });
+
+Future<List<Note>> crateApiNotesGetAllNotes();
+
+Future<Note> crateApiNotesNoteFromNumber({required int n });
+
+Future<int> crateApiNotesNoteToKeyboardC1Note({required Note that });
+
+Future<int> crateApiNotesNoteToKeyboardC5Note({required Note that });
+
+Future<int> crateApiNotesNoteToKeyboardNote({required Note that });
+
+Future<void> crateApiNotesPlayExercise();
+
+Future<void> crateApiNotesStop();
+
+String crateApiSimpleGreet({required String name });
+
+Future<void> crateApiSimpleInitApp();
+
+Future<void> crateApiSimplePlaySound();
+
+
+                }
+                
+
+                class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
+                  RustLibApiImpl({
+                    required super.handler,
+                    required super.wire,
+                    required super.generalizedFrbRustBinding,
+                    required super.portManager,
+                  });
+
+                  @override Future<Exercise> crateApiNotesExerciseNew({required Note root , required Note relative })  { return handler.executeNormal(NormalTask(
+            callFfi: (port_) {
+              
+            final serializer = SseSerializer(generalizedFrbRustBinding);sse_encode_note(root, serializer);
+sse_encode_note(relative, serializer);
+            pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 1, port: port_);
+            
+            },
+            codec: 
+        SseCodec(
+          decodeSuccessData: sse_decode_exercise,
+          decodeErrorData: null,
+        )
+        ,
+            constMeta: kCrateApiNotesExerciseNewConstMeta,
+            argValues: [root, relative],
+            apiImpl: this,
+        )); }
+
+
+        TaskConstMeta get kCrateApiNotesExerciseNewConstMeta => const TaskConstMeta(
+            debugName: "exercise_new",
+            argNames: ["root", "relative"],
+        );
+        
+
+@override Future<List<Note>> crateApiNotesGetAllNotes()  { return handler.executeNormal(NormalTask(
+            callFfi: (port_) {
+              
+            final serializer = SseSerializer(generalizedFrbRustBinding);
+            pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 2, port: port_);
+            
+            },
+            codec: 
+        SseCodec(
+          decodeSuccessData: sse_decode_list_note,
+          decodeErrorData: null,
+        )
+        ,
+            constMeta: kCrateApiNotesGetAllNotesConstMeta,
+            argValues: [],
+            apiImpl: this,
+        )); }
+
+
+        TaskConstMeta get kCrateApiNotesGetAllNotesConstMeta => const TaskConstMeta(
+            debugName: "get_all_notes",
+            argNames: [],
+        );
+        
+
+@override Future<Note> crateApiNotesNoteFromNumber({required int n })  { return handler.executeNormal(NormalTask(
+            callFfi: (port_) {
+              
+            final serializer = SseSerializer(generalizedFrbRustBinding);sse_encode_i_32(n, serializer);
+            pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 3, port: port_);
+            
+            },
+            codec: 
+        SseCodec(
+          decodeSuccessData: sse_decode_note,
+          decodeErrorData: null,
+        )
+        ,
+            constMeta: kCrateApiNotesNoteFromNumberConstMeta,
+            argValues: [n],
+            apiImpl: this,
+        )); }
+
+
+        TaskConstMeta get kCrateApiNotesNoteFromNumberConstMeta => const TaskConstMeta(
+            debugName: "note_from_number",
+            argNames: ["n"],
+        );
+        
+
+@override Future<int> crateApiNotesNoteToKeyboardC1Note({required Note that })  { return handler.executeNormal(NormalTask(
+            callFfi: (port_) {
+              
+            final serializer = SseSerializer(generalizedFrbRustBinding);sse_encode_note(that, serializer);
+            pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 4, port: port_);
+            
+            },
+            codec: 
+        SseCodec(
+          decodeSuccessData: sse_decode_i_32,
+          decodeErrorData: null,
+        )
+        ,
+            constMeta: kCrateApiNotesNoteToKeyboardC1NoteConstMeta,
+            argValues: [that],
+            apiImpl: this,
+        )); }
+
+
+        TaskConstMeta get kCrateApiNotesNoteToKeyboardC1NoteConstMeta => const TaskConstMeta(
+            debugName: "note_to_keyboard_c1_note",
+            argNames: ["that"],
+        );
+        
+
+@override Future<int> crateApiNotesNoteToKeyboardC5Note({required Note that })  { return handler.executeNormal(NormalTask(
+            callFfi: (port_) {
+              
+            final serializer = SseSerializer(generalizedFrbRustBinding);sse_encode_note(that, serializer);
+            pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 5, port: port_);
+            
+            },
+            codec: 
+        SseCodec(
+          decodeSuccessData: sse_decode_i_32,
+          decodeErrorData: null,
+        )
+        ,
+            constMeta: kCrateApiNotesNoteToKeyboardC5NoteConstMeta,
+            argValues: [that],
+            apiImpl: this,
+        )); }
+
+
+        TaskConstMeta get kCrateApiNotesNoteToKeyboardC5NoteConstMeta => const TaskConstMeta(
+            debugName: "note_to_keyboard_c5_note",
+            argNames: ["that"],
+        );
+        
+
+@override Future<int> crateApiNotesNoteToKeyboardNote({required Note that })  { return handler.executeNormal(NormalTask(
+            callFfi: (port_) {
+              
+            final serializer = SseSerializer(generalizedFrbRustBinding);sse_encode_note(that, serializer);
+            pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 6, port: port_);
+            
+            },
+            codec: 
+        SseCodec(
+          decodeSuccessData: sse_decode_i_32,
+          decodeErrorData: null,
+        )
+        ,
+            constMeta: kCrateApiNotesNoteToKeyboardNoteConstMeta,
+            argValues: [that],
+            apiImpl: this,
+        )); }
+
+
+        TaskConstMeta get kCrateApiNotesNoteToKeyboardNoteConstMeta => const TaskConstMeta(
+            debugName: "note_to_keyboard_note",
+            argNames: ["that"],
+        );
+        
+
+@override Future<void> crateApiNotesPlayExercise()  { return handler.executeNormal(NormalTask(
+            callFfi: (port_) {
+              
+            final serializer = SseSerializer(generalizedFrbRustBinding);
+            pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 7, port: port_);
+            
+            },
+            codec: 
+        SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: null,
+        )
+        ,
+            constMeta: kCrateApiNotesPlayExerciseConstMeta,
+            argValues: [],
+            apiImpl: this,
+        )); }
+
+
+        TaskConstMeta get kCrateApiNotesPlayExerciseConstMeta => const TaskConstMeta(
+            debugName: "play_exercise",
+            argNames: [],
+        );
+        
+
+@override Future<void> crateApiNotesStop()  { return handler.executeNormal(NormalTask(
+            callFfi: (port_) {
+              
+            final serializer = SseSerializer(generalizedFrbRustBinding);
+            pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 8, port: port_);
+            
+            },
+            codec: 
+        SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: null,
+        )
+        ,
+            constMeta: kCrateApiNotesStopConstMeta,
+            argValues: [],
+            apiImpl: this,
+        )); }
+
+
+        TaskConstMeta get kCrateApiNotesStopConstMeta => const TaskConstMeta(
+            debugName: "stop",
+            argNames: [],
+        );
+        
+
+@override String crateApiSimpleGreet({required String name })  { return handler.executeSync(SyncTask(
+            callFfi: () {
+              
+            final serializer = SseSerializer(generalizedFrbRustBinding);sse_encode_String(name, serializer);
+            return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 9)!;
+            
+            },
+            codec: 
+        SseCodec(
+          decodeSuccessData: sse_decode_String,
+          decodeErrorData: null,
+        )
+        ,
+            constMeta: kCrateApiSimpleGreetConstMeta,
+            argValues: [name],
+            apiImpl: this,
+        )); }
+
+
+        TaskConstMeta get kCrateApiSimpleGreetConstMeta => const TaskConstMeta(
+            debugName: "greet",
+            argNames: ["name"],
+        );
+        
+
+@override Future<void> crateApiSimpleInitApp()  { return handler.executeNormal(NormalTask(
+            callFfi: (port_) {
+              
+            final serializer = SseSerializer(generalizedFrbRustBinding);
+            pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 10, port: port_);
+            
+            },
+            codec: 
+        SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: null,
+        )
+        ,
+            constMeta: kCrateApiSimpleInitAppConstMeta,
+            argValues: [],
+            apiImpl: this,
+        )); }
+
+
+        TaskConstMeta get kCrateApiSimpleInitAppConstMeta => const TaskConstMeta(
+            debugName: "init_app",
+            argNames: [],
+        );
+        
+
+@override Future<void> crateApiSimplePlaySound()  { return handler.executeNormal(NormalTask(
+            callFfi: (port_) {
+              
+            final serializer = SseSerializer(generalizedFrbRustBinding);
+            pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 11, port: port_);
+            
+            },
+            codec: 
+        SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: null,
+        )
+        ,
+            constMeta: kCrateApiSimplePlaySoundConstMeta,
+            argValues: [],
+            apiImpl: this,
+        )); }
+
+
+        TaskConstMeta get kCrateApiSimplePlaySoundConstMeta => const TaskConstMeta(
+            debugName: "play_sound",
+            argNames: [],
+        );
+        
+
+
+
+                  @protected String dco_decode_String(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+return raw as String; }
+
+@protected Exercise dco_decode_exercise(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+final arr = raw as List<dynamic>;
+                if (arr.length != 2) throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+                return Exercise(root: dco_decode_note(arr[0]),
+relative: dco_decode_note(arr[1]),); }
+
+@protected int dco_decode_i_32(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+return raw as int; }
+
+@protected List<Note> dco_decode_list_note(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+return (raw as List<dynamic>).map(dco_decode_note).toList(); }
+
+@protected Uint8List dco_decode_list_prim_u_8_strict(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+return raw as Uint8List; }
+
+@protected Note dco_decode_note(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+return Note.values[raw as int]; }
+
+@protected int dco_decode_u_8(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+return raw as int; }
+
+@protected void dco_decode_unit(dynamic raw){ // Codec=Dco (DartCObject based), see doc to use other codecs
+return; }
+
+@protected String sse_decode_String(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+var inner = sse_decode_list_prim_u_8_strict(deserializer);
+        return utf8.decoder.convert(inner); }
+
+@protected Exercise sse_decode_exercise(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+var var_root = sse_decode_note(deserializer);
+var var_relative = sse_decode_note(deserializer);
+return Exercise(root: var_root, relative: var_relative); }
+
+@protected int sse_decode_i_32(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+return deserializer.buffer.getInt32(); }
+
+@protected List<Note> sse_decode_list_note(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+
+        var len_ = sse_decode_i_32(deserializer);
+        var ans_ = <Note>[];
+        for (var idx_ = 0; idx_ < len_; ++idx_) { ans_.add(sse_decode_note(deserializer)); }
+        return ans_;
+         }
+
+@protected Uint8List sse_decode_list_prim_u_8_strict(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+var len_ = sse_decode_i_32(deserializer);
+                return deserializer.buffer.getUint8List(len_); }
+
+@protected Note sse_decode_note(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+var inner = sse_decode_i_32(deserializer);
+        return Note.values[inner]; }
+
+@protected int sse_decode_u_8(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+return deserializer.buffer.getUint8(); }
+
+@protected void sse_decode_unit(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+ }
+
+@protected bool sse_decode_bool(SseDeserializer deserializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+return deserializer.buffer.getUint8() != 0; }
+
+@protected void sse_encode_String(String self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_list_prim_u_8_strict(utf8.encoder.convert(self), serializer); }
+
+@protected void sse_encode_exercise(Exercise self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_note(self.root, serializer);
+sse_encode_note(self.relative, serializer);
+ }
+
+@protected void sse_encode_i_32(int self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+serializer.buffer.putInt32(self); }
+
+@protected void sse_encode_list_note(List<Note> self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_i_32(self.length, serializer);
+        for (final item in self) { sse_encode_note(item, serializer); } }
+
+@protected void sse_encode_list_prim_u_8_strict(Uint8List self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_i_32(self.length, serializer);
+                    serializer.buffer.putUint8List(self); }
+
+@protected void sse_encode_note(Note self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+sse_encode_i_32(self.index, serializer); }
+
+@protected void sse_encode_u_8(int self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+serializer.buffer.putUint8(self); }
+
+@protected void sse_encode_unit(void self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+ }
+
+@protected void sse_encode_bool(bool self, SseSerializer serializer){ // Codec=Sse (Serialization based), see doc to use other codecs
+serializer.buffer.putUint8(self ? 1 : 0); }
+                }
+                
