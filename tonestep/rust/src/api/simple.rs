@@ -147,6 +147,11 @@ fn exercise_note_to_frequency(note: Note) -> f32 {
     return generate_piano_frequency(note.to_keyboard_c5_note());
 }
 
+fn relative_note_to_absolute(root: Note, relative: Note) -> Note {
+    let difference = (relative.to_keyboard_note() - root.to_keyboard_note() + 12) % 12; // Using modulo to wrap around
+    Note::from_number(difference)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -188,5 +193,91 @@ mod tests {
         assert_eq!(880.0, exercise_note_to_frequency(Note::Six));
         assert_eq!(932.3276, exercise_note_to_frequency(Note::FlatSeven));
         assert_eq!(987.7666, exercise_note_to_frequency(Note::Seven));
+    }
+
+    #[test]
+    fn test_relative_note_to_absolute() {
+        assert_eq!(Note::One, relative_note_to_absolute(Note::One, Note::One));
+        assert_eq!(
+            Note::FlatTwo,
+            relative_note_to_absolute(Note::One, Note::FlatTwo)
+        );
+        assert_eq!(Note::Two, relative_note_to_absolute(Note::One, Note::Two));
+        assert_eq!(
+            Note::FlatThree,
+            relative_note_to_absolute(Note::One, Note::FlatThree)
+        );
+        assert_eq!(
+            Note::Three,
+            relative_note_to_absolute(Note::One, Note::Three)
+        );
+        assert_eq!(Note::Four, relative_note_to_absolute(Note::One, Note::Four));
+        assert_eq!(
+            Note::SharpFour,
+            relative_note_to_absolute(Note::One, Note::SharpFour)
+        );
+        assert_eq!(Note::Five, relative_note_to_absolute(Note::One, Note::Five));
+        assert_eq!(
+            Note::FlatSix,
+            relative_note_to_absolute(Note::One, Note::FlatSix)
+        );
+        assert_eq!(Note::Six, relative_note_to_absolute(Note::One, Note::Six));
+        assert_eq!(
+            Note::FlatSeven,
+            relative_note_to_absolute(Note::One, Note::FlatSeven)
+        );
+        assert_eq!(
+            Note::Seven,
+            relative_note_to_absolute(Note::One, Note::Seven)
+        );
+
+        assert_eq!(
+            Note::FlatSix,
+            relative_note_to_absolute(Note::Three, Note::One)
+        );
+        assert_eq!(
+            Note::Six,
+            relative_note_to_absolute(Note::Three, Note::FlatTwo)
+        );
+        assert_eq!(
+            Note::FlatSeven,
+            relative_note_to_absolute(Note::Three, Note::Two)
+        );
+        assert_eq!(
+            Note::Seven,
+            relative_note_to_absolute(Note::Three, Note::FlatThree)
+        );
+        assert_eq!(
+            Note::One,
+            relative_note_to_absolute(Note::Three, Note::Three)
+        );
+        assert_eq!(
+            Note::FlatTwo,
+            relative_note_to_absolute(Note::Three, Note::Four)
+        );
+        assert_eq!(
+            Note::Two,
+            relative_note_to_absolute(Note::Three, Note::SharpFour)
+        );
+        assert_eq!(
+            Note::FlatThree,
+            relative_note_to_absolute(Note::Three, Note::Five)
+        );
+        assert_eq!(
+            Note::Three,
+            relative_note_to_absolute(Note::Three, Note::FlatSix)
+        );
+        assert_eq!(
+            Note::Four,
+            relative_note_to_absolute(Note::Three, Note::Six)
+        );
+        assert_eq!(
+            Note::SharpFour,
+            relative_note_to_absolute(Note::Three, Note::FlatSeven)
+        );
+        assert_eq!(
+            Note::Five,
+            relative_note_to_absolute(Note::Three, Note::Seven)
+        );
     }
 }

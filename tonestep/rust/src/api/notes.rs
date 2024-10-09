@@ -19,7 +19,26 @@ pub enum Note {
 }
 
 impl Note {
-    fn to_keyboard_note(&self) -> i32 {
+    pub fn from_number(n: i32) -> Note {
+        log::info!("trnasformaing: {}", n);
+        match n {
+            0 => Note::One,
+            1 => Note::FlatTwo,
+            2 => Note::Two,
+            3 => Note::FlatThree,
+            4 => Note::Three,
+            5 => Note::Four,
+            6 => Note::SharpFour,
+            7 => Note::Five,
+            8 => Note::FlatSix,
+            9 => Note::Six,
+            10 => Note::FlatSeven,
+            11 => Note::Seven,
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn to_keyboard_note(&self) -> i32 {
         match self {
             Note::One => 1,
             Note::FlatTwo => 2,
