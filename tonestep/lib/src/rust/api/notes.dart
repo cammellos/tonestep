@@ -6,68 +6,72 @@
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_receiver_is_total_eq`, `clone`, `clone`, `eq`, `fmt`, `fmt`, `hash`
 
-            // These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_receiver_is_total_eq`, `clone`, `eq`, `fmt`, `fmt`, `hash`
-
-
-            Future<List<Note>> getAllNotes() => RustLib.instance.api.crateApiNotesGetAllNotes();
+Future<List<Note>> getAllNotes() =>
+    RustLib.instance.api.crateApiNotesGetAllNotes();
 
 Future<void> stop() => RustLib.instance.api.crateApiNotesStop();
 
 Future<void> playExercise() => RustLib.instance.api.crateApiNotesPlayExercise();
 
-            class Exercise  {
-                final Note root;
-final Note relative;
+class Exercise {
+  final Note root;
+  final Note relative;
 
-                const Exercise({required this.root ,required this.relative ,});
+  const Exercise({
+    required this.root,
+    required this.relative,
+  });
 
-                  // HINT: Make it `#[frb(sync)]` to let it become the default constructor of Dart class.
-static Future<Exercise>  newInstance({required Note root , required Note relative })=>RustLib.instance.api.crateApiNotesExerciseNew(root: root, relative: relative);
+  // HINT: Make it `#[frb(sync)]` to let it become the default constructor of Dart class.
+  static Future<Exercise> newInstance(
+          {required Note root, required Note relative}) =>
+      RustLib.instance.api
+          .crateApiNotesExerciseNew(root: root, relative: relative);
 
+  @override
+  int get hashCode => root.hashCode ^ relative.hashCode;
 
-                
-
-                
-        @override
-        int get hashCode => root.hashCode^relative.hashCode;
-        
-
-                
-        @override
-        bool operator ==(Object other) =>
-            identical(this, other) ||
-            other is Exercise &&
-                runtimeType == other.runtimeType
-                && root == other.root&& relative == other.relative;
-        
-            }
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is Exercise &&
+          runtimeType == other.runtimeType &&
+          root == other.root &&
+          relative == other.relative;
+}
 
 enum Note {
-                    one,
-flatTwo,
-two,
-three,
-flatThree,
-four,
-sharpFour,
-five,
-flatSix,
-six,
-flatSeven,
-seven,
-                    ;
-                    static Future<Note>  fromNumber({required int n })=>RustLib.instance.api.crateApiNotesNoteFromNumber(n: n);
+  one,
+  flatTwo,
+  two,
+  three,
+  flatThree,
+  four,
+  sharpFour,
+  five,
+  flatSix,
+  six,
+  flatSeven,
+  seven,
+  ;
 
+  static Future<Note> fromNumber({required int n}) =>
+      RustLib.instance.api.crateApiNotesNoteFromNumber(n: n);
 
- Future<int>  toKeyboardC1Note()=>RustLib.instance.api.crateApiNotesNoteToKeyboardC1Note(that: this, );
+  Future<int> toKeyboardC1Note() =>
+      RustLib.instance.api.crateApiNotesNoteToKeyboardC1Note(
+        that: this,
+      );
 
+  Future<int> toKeyboardC5Note() =>
+      RustLib.instance.api.crateApiNotesNoteToKeyboardC5Note(
+        that: this,
+      );
 
- Future<int>  toKeyboardC5Note()=>RustLib.instance.api.crateApiNotesNoteToKeyboardC5Note(that: this, );
-
-
- Future<int>  toKeyboardNote()=>RustLib.instance.api.crateApiNotesNoteToKeyboardNote(that: this, );
-
-
-                }
-            
+  Future<int> toKeyboardNote() =>
+      RustLib.instance.api.crateApiNotesNoteToKeyboardNote(
+        that: this,
+      );
+}

@@ -1,6 +1,14 @@
 pub mod api;
-use crate::api::simple::play_sound;
+
+use std::thread;
+use std::time::Duration;
+
+use crate::api::simple::{start_playing, stop_playing};
 
 fn main() {
-    play_sound();
+    start_playing();
+
+    thread::sleep(Duration::from_millis(3000));
+    stop_playing();
+    thread::sleep(Duration::from_millis(8000));
 }

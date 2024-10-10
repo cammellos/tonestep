@@ -6,14 +6,14 @@
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
+// These functions are ignored because they are not marked as `pub`: `err_fn`, `generate_piano_frequency`, `new`, `new`, `play_sound`, `relative_note_to_absolute`, `relative_note_to_frequency`, `root_note_to_frequency`, `start_playing`, `start`, `stop_playing`, `write_data_timed`
+// These types are ignored because they are not used by any `pub` functions: `PLAYER_MANAGER`, `PlayerCommand`, `PlayerManager`, `Player`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `deref`, `initialize`
 
-            // These functions are ignored because they are not marked as `pub`: `err_fn`, `generate_piano_frequency`, `new`, `relative_note_to_absolute`, `relative_note_to_frequency`, `root_note_to_frequency`, `write_data_timed`, `write_data_timed`
-// These types are ignored because they are not used by any `pub` functions: `Player`
+String greet({required String name}) =>
+    RustLib.instance.api.crateApiSimpleGreet(name: name);
 
+Future<void> startPlaying() =>
+    RustLib.instance.api.crateApiSimpleStartPlaying();
 
-            String greet({required String name }) => RustLib.instance.api.crateApiSimpleGreet(name: name);
-
-Future<void> playSound() => RustLib.instance.api.crateApiSimplePlaySound();
-
-            
-            
+Future<void> stopPlaying() => RustLib.instance.api.crateApiSimpleStopPlaying();

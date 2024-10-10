@@ -1,9 +1,44 @@
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
+use lazy_static::lazy_static;
 use std::f32::consts::PI;
-use std::ffi::c_void;
+use std::sync::{mpsc, Arc, Mutex};
+use std::thread;
 use std::time::{Duration, Instant};
 
 use crate::api::notes::{Exercise, Note};
+
+// Global PlayerManager instance
+lazy_static! {
+    static ref PLAYER_MANAGER: Arc<Mutex<PlayerManager>> = PlayerManager::new();
+}
+enum PlayerCommand {
+    StartPlaying,
+    StopPlaying,
+}
+
+struct PlayerManager {
+    sender: Option<mpsc::Sender<()>>,
+}
+
+impl PlayerManager {
+    fn new() -> Arc<Mutex<Self>> {
+        // Spawn the background task that listens for play/stop commands
+        Arc::new(Mutex::new(PlayerManager { sender: None }))
+    }
+
+    fn start_playing(&mut self) {
+        let exercise = Exercise::new(Note::Three, Note::One);
+        let mut player = Player::new();
+        self.sender = Some(player.start(exercise));
+    }
+
+    fn stop_playing(&mut self) {
+        let _ = match &self.sender {
+            Some(c) => c.send(()),
+            None => Ok(()),
+        };
+    }
+}
 
 #[flutter_rust_bridge::frb(sync)] // Synchronous mode for simplicity of the demo
 pub fn greet(name: String) -> String {
@@ -16,13 +51,29 @@ pub fn init_app() {
     flutter_rust_bridge::setup_default_user_utils();
 }
 
+pub fn start_playing() {
+    let mut manager = PLAYER_MANAGER.lock().unwrap();
+    manager.start_playing();
+    //let exercise = Exercise::new(Note::Three, Note::One);
+    //let mut player = Player::new();
+    //let channel = player.start(exercise);
+    //channel.send(());
+    //thread::sleep(Duration::from_millis(10000));
+    //channel.send(());
+}
+
+pub fn stop_playing() {
+    let mut manager = PLAYER_MANAGER.lock().unwrap();
+    manager.stop_playing();
+}
+
 // seconds ramping up
 // 4 seconds note
 // 1 second pause
 // 2 seconds solution
 // 4 seconds note
-pub fn play_sound() {
-    let exercise = Exercise::new(Note::Three, Note::One);
+fn play_sound(receiver: mpsc::Receiver<()>) {
+    /*    let exercise = Exercise::new(Note::Three, Note::One);
     let mut player = Player::new(exercise);
 
     let host = cpal::default_host();
@@ -45,37 +96,71 @@ pub fn play_sound() {
 
     stream.play().unwrap();
 
-    std::thread::sleep(std::time::Duration::from_secs(20));
+    while receiver.recv().is_ok() {}*/
 }
 
-struct Player {
-    exercise: Exercise,
-    sample_clock: f32,
-    start_time: Instant,
-}
+struct Player {}
 
 impl Player {
-    fn new(exercise: Exercise) -> Player {
-        let start_time = Instant::now();
-        Player {
-            exercise,
-            start_time,
-            sample_clock: 0.0,
-        }
+    fn new() -> Player {
+        Player {}
     }
 
-    fn write_data_timed(&mut self, data: &mut [f32]) {
+    fn start(&mut self, exercise: Exercise) -> mpsc::Sender<()> {
+        let (tx, rx) = mpsc::channel();
+
+        thread::spawn(move || {
+            println!("RUNNING");
+            let host = cpal::default_host();
+            let device = host
+                .default_output_device()
+                .expect("No output device available");
+            let config = cpal::StreamConfig {
+                channels: 2,
+                sample_rate: cpal::SampleRate(48000),
+                buffer_size: cpal::BufferSize::Default,
+            };
+
+            let start_time = Instant::now();
+            let mut sample_clock = 0f32;
+
+            let stream = device
+                .build_output_stream(
+                    &config.into(),
+                    move |data: &mut [f32], _| {
+                        Self::write_data_timed(data, start_time, exercise, &mut sample_clock)
+                    },
+                    err_fn,
+                )
+                .unwrap();
+
+            println!("RUNNING 2");
+            stream.play().unwrap();
+            while rx.recv().is_ok() {
+                println!("QUITTING");
+                return;
+            }
+            println!("RUNNING 3");
+        });
+
+        tx
+    }
+
+    fn write_data_timed(
+        data: &mut [f32],
+        start_time: Instant,
+        exercise: Exercise,
+        sample_clock: &mut f32,
+    ) {
         let amplitude1 = 0.8; // Base volume for the first tone
         let amplitude2 = 0.3; // Base volume for the second tone
         let mut iter = data.chunks_exact_mut(2); // Stereo (left, right)
 
-        let frequency1 = root_note_to_frequency(self.exercise.root);
-        let frequency2 = relative_note_to_frequency(relative_note_to_absolute(
-            self.exercise.root,
-            self.exercise.relative,
-        ));
+        let frequency1 = root_note_to_frequency(exercise.root);
+        let frequency2 =
+            relative_note_to_frequency(relative_note_to_absolute(exercise.root, exercise.relative));
 
-        let elapsed = self.start_time.elapsed(); // Get the elapsed time since the stream started
+        let elapsed = start_time.elapsed(); // Get the elapsed time since the stream started
         let sample_rate = cpal::SampleRate(48000).0 as f32;
 
         // Define fade-in and fade-out durations
@@ -93,24 +178,20 @@ impl Player {
             };
 
             // First tone (always plays)
-            let value1 = if elapsed < Duration::from_secs(20) {
-                let harmonic1 = (2.0 * PI * (frequency1 * 2.0) * self.sample_clock / sample_rate)
-                    .sin()
+            let value1 = {
+                let harmonic1 = (2.0 * PI * (frequency1 * 2.0) * *sample_clock / sample_rate).sin()
                     * amplitude1
                     * 0.2; // Octave harmonic
-                let harmonic2 = (2.0 * PI * (frequency1 * 3.0) * self.sample_clock / sample_rate)
-                    .sin()
+                let harmonic2 = (2.0 * PI * (frequency1 * 3.0) * *sample_clock / sample_rate).sin()
                     * amplitude1
                     * 0.1; // Fifth harmonic
 
-                let base_value = (2.0 * PI * frequency1 * self.sample_clock / sample_rate).sin()
+                let base_value = (2.0 * PI * frequency1 * *sample_clock / sample_rate).sin()
                     * amplitude1
                     + harmonic1
                     + harmonic2;
 
                 base_value * fade_in_factor1 // Apply fade-in factor to the first tone
-            } else {
-                0.0 // Stop first tone after 20 seconds
             };
 
             // Calculate fade-in and fade-out factor for the second tone
@@ -129,7 +210,7 @@ impl Player {
 
             // Second tone (starts after 4 seconds, fades out after 8 seconds)
             let value2 = if elapsed >= Duration::from_secs(4) && elapsed < Duration::from_secs(12) {
-                (2.0 * PI * frequency2 * self.sample_clock / sample_rate).sin()
+                (2.0 * PI * frequency2 * *sample_clock / sample_rate).sin()
                     * amplitude2
                     * fade_in_factor2
             } else {
@@ -152,7 +233,7 @@ impl Player {
             frame[0] = cpal::Sample::from(&(combined_left * normalization_factor as f32)); // Left channel
             frame[1] = cpal::Sample::from(&(combined_right * normalization_factor as f32)); // Right channel
 
-            self.sample_clock += 1.0;
+            *sample_clock += 1.0;
         }
     }
 }
@@ -189,8 +270,8 @@ mod tests {
 
     #[test]
     fn test_player_new() {
-        let exercise = Exercise::new(Note::Three, Note::One);
-        let player = Player::new(exercise);
+        //let exercise = Exercise::new(Note::Three, Note::One);
+        //let player = Player::new(exercise);
         assert!(false);
     }
 

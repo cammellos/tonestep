@@ -103,6 +103,7 @@ pub fn get_all_notes() -> Vec<Note> {
     ]
 }
 
+#[derive(Copy, Clone)]
 pub struct Exercise {
     pub root: Note,
     pub relative: Note,
