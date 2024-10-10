@@ -56,11 +56,11 @@ impl Note {
     }
 
     pub fn to_keyboard_c1_note(&self) -> i32 {
-        self.to_keyboard_note() + 3
+        self.to_keyboard_note() + 15
     }
 
     pub fn to_keyboard_c5_note(&self) -> i32 {
-        self.to_keyboard_note() + 51
+        self.to_keyboard_note() + 39
     }
 }
 

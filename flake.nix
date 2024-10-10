@@ -81,6 +81,8 @@
           export ANDROID_ARM_LINUX_ANDROIDEABI_LIBC="$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/arm-linux-androideabi/libc++_shared.so"
 
           cargo install flutter_rust_bridge_codegen
+
+          rustup component add rust-analyzer
         '';
 
       };

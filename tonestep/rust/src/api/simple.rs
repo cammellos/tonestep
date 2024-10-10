@@ -65,37 +65,75 @@ impl Player {
     }
 
     fn write_data_timed(&mut self, data: &mut [f32]) {
-        let amplitude1 = 0.8; // Reduced volume for the first tone
-        let amplitude2 = 0.8; // Reduced volume for the second tone
+        let amplitude1 = 0.8; // Base volume for the first tone
+        let amplitude2 = 0.3; // Base volume for the second tone
         let mut iter = data.chunks_exact_mut(2); // Stereo (left, right)
 
         let frequency1 = root_note_to_frequency(self.exercise.root);
-
         let frequency2 = relative_note_to_frequency(relative_note_to_absolute(
             self.exercise.root,
             self.exercise.relative,
         ));
+
         let elapsed = self.start_time.elapsed(); // Get the elapsed time since the stream started
         let sample_rate = cpal::SampleRate(48000).0 as f32;
 
+        // Define fade-in and fade-out durations
+        let fade_in_duration1 = Duration::from_secs(2); // First tone fade-in duration
+        let fade_in_duration2 = Duration::from_secs(2); // Second tone fade-in duration
+        let fade_out_duration1 = Duration::from_secs(4); // First tone fade-out duration
+        let fade_out_duration2 = Duration::from_secs(4); // Second tone fade-out duration
+
         for frame in iter.by_ref() {
+            // Calculate fade-in factor for the first tone
+            let fade_in_factor1 = if elapsed < fade_in_duration1 {
+                elapsed.as_secs_f32() / fade_in_duration1.as_secs_f32()
+            } else {
+                1.0 // Full volume after fade-in duration
+            };
+
             // First tone (always plays)
             let value1 = if elapsed < Duration::from_secs(20) {
                 let harmonic1 = (2.0 * PI * (frequency1 * 2.0) * self.sample_clock / sample_rate)
                     .sin()
                     * amplitude1
                     * 0.2; // Octave harmonic
-                (2.0 * PI * frequency1 * self.sample_clock / sample_rate).sin() * amplitude1
+                let harmonic2 = (2.0 * PI * (frequency1 * 3.0) * self.sample_clock / sample_rate)
+                    .sin()
+                    * amplitude1
+                    * 0.1; // Fifth harmonic
+
+                let base_value = (2.0 * PI * frequency1 * self.sample_clock / sample_rate).sin()
+                    * amplitude1
                     + harmonic1
+                    + harmonic2;
+
+                base_value * fade_in_factor1 // Apply fade-in factor to the first tone
             } else {
-                0.0 // Stop first tone after 5 seconds
+                0.0 // Stop first tone after 20 seconds
             };
 
-            // Second tone (starts after 1 second, stops after 3 seconds)
-            let value2 = if elapsed >= Duration::from_secs(4) && elapsed < Duration::from_secs(8) {
-                (2.0 * PI * frequency2 * self.sample_clock / sample_rate).sin() * amplitude2
+            // Calculate fade-in and fade-out factor for the second tone
+            let fade_in_factor2 = if elapsed >= Duration::from_secs(4)
+                && elapsed < Duration::from_secs(6)
+            {
+                (elapsed.as_secs_f32() - 4.0) / fade_in_duration2.as_secs_f32() // Gradual fade-in from 4s to 6s
+            } else if elapsed >= Duration::from_secs(6) && elapsed < Duration::from_secs(8) {
+                1.0 // Full volume between 6s and 8s
+            } else if elapsed >= Duration::from_secs(8) && elapsed < Duration::from_secs(12) {
+                1.0 - ((elapsed.as_secs_f32() - 8.0) / fade_out_duration2.as_secs_f32())
+            // Gradual fade-out from 8s to 12s
             } else {
-                0.0 // Silence for the second tone
+                0.0 // Silence before fade-in or after fade-out
+            };
+
+            // Second tone (starts after 4 seconds, fades out after 8 seconds)
+            let value2 = if elapsed >= Duration::from_secs(4) && elapsed < Duration::from_secs(12) {
+                (2.0 * PI * frequency2 * self.sample_clock / sample_rate).sin()
+                    * amplitude2
+                    * fade_in_factor2
+            } else {
+                0.0 // Silence for the second tone outside the specified window
             };
 
             // Combine the two signals
@@ -114,7 +152,7 @@ impl Player {
             frame[0] = cpal::Sample::from(&(combined_left * normalization_factor as f32)); // Left channel
             frame[1] = cpal::Sample::from(&(combined_right * normalization_factor as f32)); // Right channel
 
-            self.sample_clock = self.sample_clock + 1.0;
+            self.sample_clock += 1.0;
         }
     }
 }
@@ -158,34 +196,34 @@ mod tests {
 
     #[test]
     fn test_root_note_to_frequency() {
-        assert_eq!(32.703194, root_note_to_frequency(Note::One));
-        assert_eq!(34.647827, root_note_to_frequency(Note::FlatTwo));
-        assert_eq!(36.7081, root_note_to_frequency(Note::Two));
-        assert_eq!(38.890873, root_note_to_frequency(Note::FlatThree));
-        assert_eq!(41.20344, root_note_to_frequency(Note::Three));
-        assert_eq!(43.65353, root_note_to_frequency(Note::Four));
-        assert_eq!(46.249302, root_note_to_frequency(Note::SharpFour));
-        assert_eq!(48.999424, root_note_to_frequency(Note::Five));
-        assert_eq!(51.91309, root_note_to_frequency(Note::FlatSix));
-        assert_eq!(55.0, root_note_to_frequency(Note::Six));
-        assert_eq!(58.270466, root_note_to_frequency(Note::FlatSeven));
-        assert_eq!(61.73542, root_note_to_frequency(Note::Seven));
+        assert_eq!(65.40639, root_note_to_frequency(Note::One));
+        assert_eq!(69.295654, root_note_to_frequency(Note::FlatTwo));
+        assert_eq!(73.4162, root_note_to_frequency(Note::Two));
+        assert_eq!(77.781746, root_note_to_frequency(Note::FlatThree));
+        assert_eq!(82.40688, root_note_to_frequency(Note::Three));
+        assert_eq!(87.30706, root_note_to_frequency(Note::Four));
+        assert_eq!(92.498604, root_note_to_frequency(Note::SharpFour));
+        assert_eq!(97.99885, root_note_to_frequency(Note::Five));
+        assert_eq!(103.82618, root_note_to_frequency(Note::FlatSix));
+        assert_eq!(110.0, root_note_to_frequency(Note::Six));
+        assert_eq!(116.54095, root_note_to_frequency(Note::FlatSeven));
+        assert_eq!(123.470825, root_note_to_frequency(Note::Seven));
     }
 
     #[test]
     fn test_relative_note_to_frequency() {
-        assert_eq!(523.2511, relative_note_to_frequency(Note::One));
-        assert_eq!(554.3653, relative_note_to_frequency(Note::FlatTwo));
-        assert_eq!(587.3295, relative_note_to_frequency(Note::Two));
-        assert_eq!(622.25397, relative_note_to_frequency(Note::FlatThree));
-        assert_eq!(659.2551, relative_note_to_frequency(Note::Three));
-        assert_eq!(698.4565, relative_note_to_frequency(Note::Four));
-        assert_eq!(739.98883, relative_note_to_frequency(Note::SharpFour));
-        assert_eq!(783.99084, relative_note_to_frequency(Note::Five));
-        assert_eq!(830.6094, relative_note_to_frequency(Note::FlatSix));
-        assert_eq!(880.0, relative_note_to_frequency(Note::Six));
-        assert_eq!(932.3276, relative_note_to_frequency(Note::FlatSeven));
-        assert_eq!(987.7666, relative_note_to_frequency(Note::Seven));
+        assert_eq!(261.62555, relative_note_to_frequency(Note::One));
+        assert_eq!(277.18265, relative_note_to_frequency(Note::FlatTwo));
+        assert_eq!(293.66476, relative_note_to_frequency(Note::Two));
+        assert_eq!(311.12698, relative_note_to_frequency(Note::FlatThree));
+        assert_eq!(329.62756, relative_note_to_frequency(Note::Three));
+        assert_eq!(349.22824, relative_note_to_frequency(Note::Four));
+        assert_eq!(369.99442, relative_note_to_frequency(Note::SharpFour));
+        assert_eq!(391.99542, relative_note_to_frequency(Note::Five));
+        assert_eq!(415.3047, relative_note_to_frequency(Note::FlatSix));
+        assert_eq!(440.0, relative_note_to_frequency(Note::Six));
+        assert_eq!(466.1638, relative_note_to_frequency(Note::FlatSeven));
+        assert_eq!(493.8833, relative_note_to_frequency(Note::Seven));
     }
 
     #[test]
