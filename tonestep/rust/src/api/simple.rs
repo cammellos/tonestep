@@ -156,7 +156,8 @@ impl Player {
         let fade_out_duration = Duration::from_secs(FADE_OUT_DURATION); // First tone fade-out duration
 
         for frame in iter.by_ref() {
-            let fade_in_factor1 = match exercise_generator.root_volume_info() {
+            let command = exercise_generator.generate_command();
+            let fade_in_factor1 = match command.play_root {
                 VolumeInfo::FadeIn => elapsed.as_secs_f32() / fade_in_duration.as_secs_f32(),
                 VolumeInfo::FadeOut => {
                     1.0 - ((elapsed.as_secs_f32() - (ROOT_END_TIME - FADE_OUT_DURATION) as f32)
@@ -187,24 +188,46 @@ impl Player {
 
                 base_value * fade_in_factor1 // Apply fade-in factor to the first tone
             };
+            let mut value2: f32 = 0.0;
 
-            let fade_in_factor2 = match exercise_generator.relative_challenge_volume_info() {
-                VolumeInfo::FadeIn => {
-                    (elapsed.as_secs_f32() - RELATIVE_CHALLENGE_FADE_IN_START_TIME as f32)
-                        / fade_in_duration.as_secs_f32()
-                }
-                VolumeInfo::FullVolume => 1.0,
-                VolumeInfo::FadeOut => {
-                    1.0 - ((elapsed.as_secs_f32() - RELATIVE_CHALLENGE_FADE_OUT_START_TIME as f32)
-                        / fade_out_duration.as_secs_f32())
-                }
-                VolumeInfo::Silent => 0.0,
-            };
+            if command.play_challenge != VolumeInfo::Silent {
+                let fade_in_factor2 = match command.play_challenge {
+                    VolumeInfo::FadeIn => {
+                        (elapsed.as_secs_f32() - RELATIVE_CHALLENGE_FADE_IN_START_TIME as f32)
+                            / fade_in_duration.as_secs_f32()
+                    }
+                    VolumeInfo::FullVolume => 1.0,
+                    VolumeInfo::FadeOut => {
+                        1.0 - ((elapsed.as_secs_f32()
+                            - RELATIVE_CHALLENGE_FADE_OUT_START_TIME as f32)
+                            / fade_out_duration.as_secs_f32())
+                    }
+                    VolumeInfo::Silent => 0.0,
+                };
 
-            let value2 = (2.0 * PI * frequency2 * exercise_generator.sample_clock / sample_rate)
-                .sin()
-                * amplitude2
-                * fade_in_factor2;
+                value2 = (2.0 * PI * frequency2 * exercise_generator.sample_clock / sample_rate)
+                    .sin()
+                    * amplitude2
+                    * fade_in_factor2;
+            } else if command.play_answer != VolumeInfo::Silent {
+                let fade_in_factor2 = match command.play_answer {
+                    VolumeInfo::FadeIn => {
+                        (elapsed.as_secs_f32() - RELATIVE_ANSWER_FADE_IN_START_TIME as f32)
+                            / fade_in_duration.as_secs_f32()
+                    }
+                    VolumeInfo::FullVolume => 1.0,
+                    VolumeInfo::FadeOut => {
+                        1.0 - ((elapsed.as_secs_f32() - RELATIVE_ANSWER_FADE_OUT_START_TIME as f32)
+                            / fade_out_duration.as_secs_f32())
+                    }
+                    VolumeInfo::Silent => 0.0,
+                };
+
+                value2 = (2.0 * PI * frequency2 * exercise_generator.sample_clock / sample_rate)
+                    .sin()
+                    * amplitude2
+                    * fade_in_factor2;
+            }
 
             // Combine the two signals
             let combined_left = (value1 + value2) * 0.5;
@@ -294,6 +317,10 @@ impl ExerciseGenerator {
 
     fn increment_sample_clock(&mut self) {
         self.sample_clock += 1.0;
+    }
+
+    fn generate_command(&self) -> ExerciseCommand {
+        Self::_generate_command(self.time.elapsed())
     }
 
     fn _generate_command(elapsed: Duration) -> ExerciseCommand {
