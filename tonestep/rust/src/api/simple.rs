@@ -14,15 +14,28 @@ const EXERCISE_DURATION: u64 = 20;
 const FADE_IN_DURATION: u64 = 2;
 const FADE_OUT_DURATION: u64 = 2;
 
-const RELATIVE_CHALLENGE_TOTAL_TIME: u64 = FADE_IN_DURATION + FADE_OUT_DURATION + 4;
-const RELATIVE_CHALLENGE_START_TIME: u64 = 2;
-const RELATIVE_CHALLENGE_FADE_IN_START_TIME: u64 = RELATIVE_CHALLENGE_START_TIME;
+const ROOT_FULL_VOLUME_DURATION: u64 = 16;
+
+const ROOT_FADE_IN_START_TIME: u64 = 0;
+const ROOT_FULL_VOLUME_START_TIME: u64 = ROOT_FADE_IN_START_TIME + FADE_IN_DURATION;
+const ROOT_FADE_OUT_START_TIME: u64 = ROOT_FULL_VOLUME_START_TIME + ROOT_FULL_VOLUME_DURATION;
+const ROOT_END_TIME: u64 = ROOT_FADE_OUT_START_TIME + FADE_OUT_DURATION;
+
+const RELATIVE_FULL_VOLUME_DURATION: u64 = 4;
+
+const RELATIVE_CHALLENGE_FADE_IN_START_TIME: u64 = 2;
 const RELATIVE_CHALLENGE_FULL_VOLUME_START_TIME: u64 =
     RELATIVE_CHALLENGE_FADE_IN_START_TIME + FADE_IN_DURATION;
 const RELATIVE_CHALLENGE_FADE_OUT_START_TIME: u64 =
-    RELATIVE_CHALLENGE_START_TIME + RELATIVE_CHALLENGE_TOTAL_TIME - FADE_OUT_DURATION;
-const RELATIVE_CHALLENGE_END_TIME: u64 =
-    RELATIVE_CHALLENGE_START_TIME + RELATIVE_CHALLENGE_TOTAL_TIME;
+    RELATIVE_CHALLENGE_FULL_VOLUME_START_TIME + RELATIVE_FULL_VOLUME_DURATION;
+const RELATIVE_CHALLENGE_END_TIME: u64 = RELATIVE_CHALLENGE_FADE_OUT_START_TIME + FADE_OUT_DURATION;
+
+const RELATIVE_ANSWER_FADE_IN_START_TIME: u64 = 12;
+const RELATIVE_ANSWER_FULL_VOLUME_START_TIME: u64 =
+    RELATIVE_ANSWER_FADE_IN_START_TIME + FADE_IN_DURATION;
+const RELATIVE_ANSWER_FADE_OUT_START_TIME: u64 =
+    RELATIVE_ANSWER_FULL_VOLUME_START_TIME + RELATIVE_FULL_VOLUME_DURATION;
+const RELATIVE_ANSWER_END_TIME: u64 = RELATIVE_ANSWER_FADE_OUT_START_TIME + FADE_OUT_DURATION;
 
 // Global PlayerManager instance
 lazy_static! {
@@ -76,6 +89,14 @@ enum VolumeInfo {
     FadeOut,
     FullVolume,
     Silent,
+}
+
+#[derive(Debug)]
+struct ExerciseCommand {
+    play_root: VolumeInfo,
+    play_challenge: VolumeInfo,
+    play_answer: VolumeInfo,
+    play_voice_answer: VolumeInfo,
 }
 
 impl Player {
@@ -136,7 +157,7 @@ impl Player {
         let fade_out_duration = Duration::from_secs(FADE_OUT_DURATION); // First tone fade-out duration
 
         for frame in iter.by_ref() {
-            let fade_in_factor1 = match exercise_generator.root_tone_volume_info() {
+            let fade_in_factor1 = match exercise_generator.root_volume_info() {
                 VolumeInfo::FadeIn => elapsed.as_secs_f32() / fade_in_duration.as_secs_f32(),
                 VolumeInfo::FadeOut => {
                     1.0 - ((elapsed.as_secs_f32() - (EXERCISE_DURATION - FADE_OUT_DURATION) as f32)
@@ -168,9 +189,9 @@ impl Player {
                 base_value * fade_in_factor1 // Apply fade-in factor to the first tone
             };
 
-            let fade_in_factor2 = match exercise_generator.relative_tone_volume_info() {
+            let fade_in_factor2 = match exercise_generator.relative_challenge_volume_info() {
                 VolumeInfo::FadeIn => {
-                    (elapsed.as_secs_f32() - FADE_IN_DURATION as f32)
+                    (elapsed.as_secs_f32() - RELATIVE_CHALLENGE_FADE_IN_START_TIME as f32)
                         / fade_in_duration.as_secs_f32()
                 }
                 VolumeInfo::FullVolume => 1.0,
@@ -215,6 +236,45 @@ struct ExerciseGenerator {
     sample_clock: f32,
 }
 
+struct VolumeTimings {
+    fade_in_start: u64,
+    full_volume_start: u64,
+    fade_out_start: u64,
+    end_time: u64,
+}
+
+impl VolumeTimings {
+    fn new(fade_in_start: u64, full_volume_duration: u64) -> Self {
+        let full_volume_start = fade_in_start + FADE_IN_DURATION;
+        let fade_out_start = full_volume_start + full_volume_duration;
+        let end_time = fade_out_start + FADE_OUT_DURATION;
+        VolumeTimings {
+            fade_in_start,
+            full_volume_start,
+            fade_out_start,
+            end_time,
+        }
+    }
+}
+
+fn calculate_volume_info(elapsed: Duration, timings: &VolumeTimings) -> VolumeInfo {
+    if elapsed >= Duration::from_secs(timings.fade_in_start)
+        && elapsed < Duration::from_secs(timings.full_volume_start)
+    {
+        VolumeInfo::FadeIn
+    } else if elapsed >= Duration::from_secs(timings.full_volume_start)
+        && elapsed < Duration::from_secs(timings.fade_out_start)
+    {
+        VolumeInfo::FullVolume
+    } else if elapsed >= Duration::from_secs(timings.fade_out_start)
+        && elapsed < Duration::from_secs(timings.end_time)
+    {
+        VolumeInfo::FadeOut
+    } else {
+        VolumeInfo::Silent
+    }
+}
+
 impl ExerciseGenerator {
     fn new(notes: HashSet<Note>) -> Result<ExerciseGenerator, &'static str> {
         if notes.is_empty() {
@@ -237,47 +297,48 @@ impl ExerciseGenerator {
         self.sample_clock += 1.0;
     }
 
-    fn root_tone_volume_info(&self) -> VolumeInfo {
-        Self::_root_tone_volume_info(self.time.elapsed())
-    }
-
-    fn _root_tone_volume_info(elapsed: Duration) -> VolumeInfo {
-        let fade_in_duration = Duration::from_secs(FADE_IN_DURATION);
-        if elapsed < fade_in_duration {
-            VolumeInfo::FadeIn
-        } else if elapsed >= Duration::from_secs(EXERCISE_DURATION - FADE_OUT_DURATION)
-            && elapsed < Duration::from_secs(EXERCISE_DURATION)
-        {
-            VolumeInfo::FadeOut
-        } else if elapsed >= Duration::from_secs(EXERCISE_DURATION) {
-            VolumeInfo::Silent
-        } else {
-            VolumeInfo::FullVolume
+    fn _generate_command(elapsed: Duration) -> ExerciseCommand {
+        let play_root = Self::_root_volume_info(elapsed);
+        let play_challenge = Self::_relative_challenge_volume_info(elapsed);
+        ExerciseCommand {
+            play_root,
+            play_challenge,
+            play_answer: VolumeInfo::Silent,
+            play_voice_answer: VolumeInfo::Silent,
         }
     }
 
-    fn relative_tone_volume_info(&self) -> VolumeInfo {
-        Self::_relative_tone_volume_info(self.time.elapsed())
+    fn root_volume_info(&self) -> VolumeInfo {
+        Self::_root_volume_info(self.time.elapsed())
     }
 
-    fn _relative_tone_volume_info(elapsed: Duration) -> VolumeInfo {
-        if elapsed >= Duration::from_secs(RELATIVE_CHALLENGE_FADE_IN_START_TIME)
-            && elapsed < Duration::from_secs(RELATIVE_CHALLENGE_FULL_VOLUME_START_TIME)
-        {
-            VolumeInfo::FadeIn
-        // Gradual fade-in from 4s to 6s
-        } else if elapsed >= Duration::from_secs(RELATIVE_CHALLENGE_FULL_VOLUME_START_TIME)
-            && elapsed < Duration::from_secs(RELATIVE_CHALLENGE_FADE_OUT_START_TIME)
-        {
-            VolumeInfo::FullVolume
-        } else if elapsed >= Duration::from_secs(RELATIVE_CHALLENGE_FADE_OUT_START_TIME)
-            && elapsed < Duration::from_secs(RELATIVE_CHALLENGE_END_TIME)
-        {
-            VolumeInfo::FadeOut
-        // Gradual fade-out from 8s to 12s
-        } else {
-            VolumeInfo::Silent
-        }
+    fn _root_volume_info(elapsed: Duration) -> VolumeInfo {
+        let timings = VolumeTimings::new(ROOT_FADE_IN_START_TIME, ROOT_FULL_VOLUME_DURATION);
+        calculate_volume_info(elapsed, &timings)
+    }
+
+    fn relative_challenge_volume_info(&self) -> VolumeInfo {
+        Self::_relative_challenge_volume_info(self.time.elapsed())
+    }
+
+    fn _relative_challenge_volume_info(elapsed: Duration) -> VolumeInfo {
+        let timings = VolumeTimings::new(
+            RELATIVE_CHALLENGE_FADE_IN_START_TIME,
+            RELATIVE_FULL_VOLUME_DURATION,
+        );
+        calculate_volume_info(elapsed, &timings)
+    }
+
+    fn relative_answer_volume_info(&self) -> VolumeInfo {
+        Self::_relative_answer_volume_info(self.time.elapsed())
+    }
+
+    fn _relative_answer_volume_info(elapsed: Duration) -> VolumeInfo {
+        let timings = VolumeTimings::new(
+            RELATIVE_ANSWER_FADE_IN_START_TIME,
+            RELATIVE_FULL_VOLUME_DURATION,
+        );
+        calculate_volume_info(elapsed, &timings)
     }
 
     fn current_exercise(&mut self) -> Exercise {
@@ -498,47 +559,45 @@ mod tests {
     }
 
     #[test]
-    fn test_exercise_generator_root_tone_volume_info() {
+    fn test_exercise_generator_root_volume_info() {
         assert_eq!(
             VolumeInfo::FadeIn,
-            ExerciseGenerator::_root_tone_volume_info(Duration::from_secs(0)),
+            ExerciseGenerator::_root_volume_info(Duration::from_secs(ROOT_FADE_IN_START_TIME)),
             "it fades in at the start"
         );
 
         assert_eq!(
             VolumeInfo::FullVolume,
-            ExerciseGenerator::_root_tone_volume_info(Duration::from_secs(FADE_IN_DURATION)),
+            ExerciseGenerator::_root_volume_info(Duration::from_secs(ROOT_FULL_VOLUME_START_TIME)),
             "it goes to full volume after a fade in duration"
         );
 
         assert_eq!(
             VolumeInfo::FadeOut,
-            ExerciseGenerator::_root_tone_volume_info(Duration::from_secs(
-                EXERCISE_DURATION - FADE_OUT_DURATION
-            )),
+            ExerciseGenerator::_root_volume_info(Duration::from_secs(ROOT_FADE_OUT_START_TIME)),
             "it starts to fade out at the end"
         );
 
         assert_eq!(
             VolumeInfo::Silent,
-            ExerciseGenerator::_root_tone_volume_info(Duration::from_secs(EXERCISE_DURATION)),
+            ExerciseGenerator::_root_volume_info(Duration::from_secs(ROOT_END_TIME)),
             "it's silent at the end"
         );
     }
 
     #[test]
-    fn test_exercise_generator_relative_tone_volume_info() {
+    fn test_exercise_generator_relative_challenge_tone_volume_info() {
         assert_eq!(
             VolumeInfo::FadeIn,
-            ExerciseGenerator::_relative_tone_volume_info(Duration::from_secs(
-                RELATIVE_CHALLENGE_START_TIME
+            ExerciseGenerator::_relative_challenge_volume_info(Duration::from_secs(
+                RELATIVE_CHALLENGE_FADE_IN_START_TIME
             )),
             "it fades in at the start"
         );
 
         assert_eq!(
             VolumeInfo::FullVolume,
-            ExerciseGenerator::_relative_tone_volume_info(Duration::from_secs(
+            ExerciseGenerator::_relative_challenge_volume_info(Duration::from_secs(
                 RELATIVE_CHALLENGE_FULL_VOLUME_START_TIME
             )),
             "it goes to full volume after a fade in duration"
@@ -546,7 +605,7 @@ mod tests {
 
         assert_eq!(
             VolumeInfo::FadeOut,
-            ExerciseGenerator::_relative_tone_volume_info(Duration::from_secs(
+            ExerciseGenerator::_relative_challenge_volume_info(Duration::from_secs(
                 RELATIVE_CHALLENGE_FADE_OUT_START_TIME
             )),
             "it starts to fade out at the end"
@@ -554,10 +613,81 @@ mod tests {
 
         assert_eq!(
             VolumeInfo::Silent,
-            ExerciseGenerator::_relative_tone_volume_info(Duration::from_secs(
+            ExerciseGenerator::_relative_challenge_volume_info(Duration::from_secs(
                 RELATIVE_CHALLENGE_END_TIME
             )),
             "it's silent at the end"
         );
+    }
+
+    #[test]
+    fn test_exercise_generator_relative_answer_tone_volume_info() {
+        assert_eq!(
+            VolumeInfo::FadeIn,
+            ExerciseGenerator::_relative_answer_volume_info(Duration::from_secs(
+                RELATIVE_ANSWER_FADE_IN_START_TIME
+            )),
+            "it fades in at the start"
+        );
+
+        assert_eq!(
+            VolumeInfo::FullVolume,
+            ExerciseGenerator::_relative_answer_volume_info(Duration::from_secs(
+                RELATIVE_ANSWER_FULL_VOLUME_START_TIME
+            )),
+            "it goes to full volume after a fade in duration"
+        );
+
+        assert_eq!(
+            VolumeInfo::FadeOut,
+            ExerciseGenerator::_relative_answer_volume_info(Duration::from_secs(
+                RELATIVE_ANSWER_FADE_OUT_START_TIME
+            )),
+            "it starts to fade out at the end"
+        );
+
+        assert_eq!(
+            VolumeInfo::Silent,
+            ExerciseGenerator::_relative_answer_volume_info(Duration::from_secs(
+                RELATIVE_ANSWER_END_TIME
+            )),
+            "it's silent at the end"
+        );
+    }
+
+    struct GeneratorTestCase {
+        elapsed: Duration,
+        play_root: VolumeInfo,
+        play_challenge: VolumeInfo,
+        play_answer: VolumeInfo,
+        play_voice_answer: VolumeInfo,
+    }
+
+    #[test]
+    fn test_exercise_generator_command() {
+        let test_cases = vec![
+            GeneratorTestCase {
+                elapsed: Duration::from_secs(0),
+                play_root: VolumeInfo::FadeIn,
+                play_challenge: VolumeInfo::Silent,
+                play_answer: VolumeInfo::Silent,
+                play_voice_answer: VolumeInfo::Silent,
+            },
+            GeneratorTestCase {
+                elapsed: Duration::from_secs(RELATIVE_CHALLENGE_FADE_IN_START_TIME),
+                play_root: VolumeInfo::FullVolume,
+                play_challenge: VolumeInfo::FadeIn,
+                play_answer: VolumeInfo::Silent,
+                play_voice_answer: VolumeInfo::Silent,
+            },
+        ];
+
+        for case in test_cases {
+            let command = ExerciseGenerator::_generate_command(case.elapsed);
+            assert_eq!(case.play_root, command.play_root);
+            assert_eq!(case.play_challenge, command.play_challenge);
+            // assert_eq!(case.play_answer, command.play_answer);
+            //assert_eq!(case.play_voice_answer, command.play_voice_answer);
+        }
     }
 }
