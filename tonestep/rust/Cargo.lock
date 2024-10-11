@@ -1431,6 +1431,7 @@ version = "0.1.0"
 dependencies = [
  "cpal 0.13.5",
  "flutter_rust_bridge",
+ "hound",
  "jni 0.21.1",
  "lazy_static",
  "log",

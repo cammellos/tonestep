@@ -1,14 +1,16 @@
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
+use hound::WavReader;
 use lazy_static::lazy_static;
 use rand::prelude::thread_rng;
 use rand::seq::IteratorRandom;
 use std::collections::HashSet;
 use std::f32::consts::PI;
+use std::io::BufReader;
 use std::sync::{mpsc, Arc, Mutex};
 use std::thread;
 use std::time::{Duration, Instant};
 
-use crate::api::notes::{get_all_notes, Exercise, Note};
+use crate::api::notes::{get_all_notes, Note};
 
 const FADE_IN_DURATION: u64 = 2;
 const FADE_OUT_DURATION: u64 = 2;
@@ -90,12 +92,29 @@ enum VolumeInfo {
     Silent,
 }
 
-#[derive(Debug)]
+struct Exercise {
+    root: Note,
+    relative: Note,
+    wav: WavFile,
+}
+
+impl Exercise {
+    fn new(root: Note, relative: Note) -> Exercise {
+        let relative = relative_note_to_absolute(root, relative);
+        let mut wav = WavFile::new("resources/1.wav");
+        Exercise {
+            root,
+            relative,
+            wav,
+        }
+    }
+}
+
 struct ExerciseCommand {
     play_root: VolumeInfo,
     play_challenge: VolumeInfo,
     play_answer: VolumeInfo,
-    play_voice_answer: VolumeInfo,
+    play_voice_answer: Option<WavFile>,
 }
 
 impl Player {
@@ -119,11 +138,13 @@ impl Player {
 
             let mut exercise_generator = ExerciseGenerator::new(notes).unwrap();
 
+            let mut wav = WavFile::new("resources/1.wav");
+
             let stream = device
                 .build_output_stream(
                     &config.into(),
                     move |data: &mut [f32], _| {
-                        Self::write_data_timed(data, &mut exercise_generator)
+                        Self::write_data_timed(data, &mut exercise_generator, &mut wav)
                     },
                     err_fn,
                 )
@@ -138,15 +159,17 @@ impl Player {
         tx
     }
 
-    fn write_data_timed(data: &mut [f32], exercise_generator: &mut ExerciseGenerator) {
-        let exercise = exercise_generator.current_exercise();
+    fn write_data_timed(
+        data: &mut [f32],
+        exercise_generator: &mut ExerciseGenerator,
+        wav: &mut WavFile,
+    ) {
         let amplitude1 = 0.8; // Base volume for the first tone
         let amplitude2 = 0.3; // Base volume for the second tone
         let mut iter = data.chunks_exact_mut(2); // Stereo (left, right)
 
-        let frequency1 = root_note_to_frequency(exercise.root);
-        let frequency2 =
-            relative_note_to_frequency(relative_note_to_absolute(exercise.root, exercise.relative));
+        let frequency1 = exercise_generator.root_frequency();
+        let frequency2 = exercise_generator.relative_frequency();
 
         let elapsed = exercise_generator.time.elapsed(); // Get the elapsed time since the stream started
         let sample_rate = cpal::SampleRate(48000).0 as f32;
@@ -230,8 +253,16 @@ impl Player {
             }
 
             // Combine the two signals
-            let combined_left = (value1 + value2) * 0.5;
-            let combined_right = (value1 + value2) * 0.5;
+            let mut combined_left = (value1 + value2) * 0.5;
+            let mut combined_right = (value1 + value2) * 0.5;
+
+            // Add WAV playback after 10 seconds
+            if elapsed >= Duration::from_secs(10) {
+                if let Some(wav_sample) = wav.get_next_sample() {
+                    combined_left += wav_sample;
+                    combined_right += wav_sample;
+                }
+            }
 
             // Normalize to prevent clipping (keep values within [-1.0, 1.0])
             let max_value = combined_left.abs().max(combined_right.abs());
@@ -250,7 +281,6 @@ impl Player {
     }
 }
 
-#[derive(Clone)]
 struct ExerciseGenerator {
     notes: HashSet<Note>,
     exercise: Exercise,
@@ -303,10 +333,7 @@ impl ExerciseGenerator {
             return Err("The set of notes cannot be empty");
         }
         let time = Instant::now();
-        let exercise = Exercise {
-            root: random_root(),
-            relative: random_relative(notes.clone()),
-        };
+        let exercise = Exercise::new(random_root(), random_relative(notes.clone()));
         Ok(ExerciseGenerator {
             notes,
             time,
@@ -331,7 +358,7 @@ impl ExerciseGenerator {
             play_root,
             play_challenge,
             play_answer,
-            play_voice_answer: VolumeInfo::Silent,
+            play_voice_answer: None,
         }
     }
 
@@ -368,16 +395,15 @@ impl ExerciseGenerator {
         calculate_volume_info(elapsed, &timings)
     }
 
-    fn current_exercise(&mut self) -> Exercise {
-        self._current_exercise(self.time.elapsed())
+    fn root_frequency(&self) -> f32 {
+        root_note_to_frequency(self.exercise.root)
     }
 
-    fn _current_exercise(&mut self, elapsed: Duration) -> Exercise {
-        if elapsed >= Duration::from_secs(ROOT_END_TIME) {
-            self.exercise = self.next_exercise();
-            self.time = Instant::now();
-        }
-        self.exercise
+    fn relative_frequency(&self) -> f32 {
+        relative_note_to_frequency(relative_note_to_absolute(
+            self.exercise.root,
+            self.exercise.relative,
+        ))
     }
 
     fn next_exercise(&self) -> Exercise {
@@ -385,10 +411,7 @@ impl ExerciseGenerator {
         while root == self.exercise.root {
             root = random_root();
         }
-        Exercise {
-            root,
-            relative: self.random_relative(),
-        }
+        Exercise::new(root, self.random_relative())
     }
 
     fn random_relative(&self) -> Note {
@@ -430,6 +453,36 @@ fn relative_note_to_frequency(note: Note) -> f32 {
 fn relative_note_to_absolute(root: Note, relative: Note) -> Note {
     let difference = (relative.to_keyboard_note() - root.to_keyboard_note() + 12) % 12; // Using modulo to wrap around
     Note::from_number(difference)
+}
+
+struct WavFile {
+    current_sample: usize,
+    samples: Vec<f32>,
+}
+
+impl WavFile {
+    fn new(path: &str) -> Self {
+        let mut reader = WavReader::open(path).unwrap();
+        let samples: Vec<f32> = reader
+            .samples::<i16>()
+            .map(|s| s.unwrap() as f32 / i16::MAX as f32) // Normalize samples to [-1.0, 1.0]
+            .collect();
+
+        WavFile {
+            current_sample: 0,
+            samples,
+        }
+    }
+
+    fn get_next_sample(&mut self) -> Option<f32> {
+        if self.current_sample >= self.samples.len() {
+            None // End of file reached
+        } else {
+            let sample = self.samples[self.current_sample];
+            self.current_sample += 1;
+            Some(sample)
+        }
+    }
 }
 
 #[cfg(test)]
@@ -687,7 +740,7 @@ mod tests {
         play_root: VolumeInfo,
         play_challenge: VolumeInfo,
         play_answer: VolumeInfo,
-        play_voice_answer: VolumeInfo,
+        play_voice_answer: Option<()>,
     }
 
     #[test]
@@ -698,7 +751,7 @@ mod tests {
                 play_root: VolumeInfo::FadeIn,
                 play_challenge: VolumeInfo::Silent,
                 play_answer: VolumeInfo::Silent,
-                play_voice_answer: VolumeInfo::Silent,
+                play_voice_answer: None,
             },
             // Challenge
             GeneratorTestCase {
@@ -706,28 +759,28 @@ mod tests {
                 play_root: VolumeInfo::FullVolume,
                 play_challenge: VolumeInfo::FadeIn,
                 play_answer: VolumeInfo::Silent,
-                play_voice_answer: VolumeInfo::Silent,
+                play_voice_answer: None,
             },
             GeneratorTestCase {
                 elapsed: Duration::from_secs(RELATIVE_CHALLENGE_FULL_VOLUME_START_TIME),
                 play_root: VolumeInfo::FullVolume,
                 play_challenge: VolumeInfo::FullVolume,
                 play_answer: VolumeInfo::Silent,
-                play_voice_answer: VolumeInfo::Silent,
+                play_voice_answer: None,
             },
             GeneratorTestCase {
                 elapsed: Duration::from_secs(RELATIVE_CHALLENGE_FADE_OUT_START_TIME),
                 play_root: VolumeInfo::FullVolume,
                 play_challenge: VolumeInfo::FadeOut,
                 play_answer: VolumeInfo::Silent,
-                play_voice_answer: VolumeInfo::Silent,
+                play_voice_answer: None,
             },
             GeneratorTestCase {
                 elapsed: Duration::from_secs(RELATIVE_CHALLENGE_END_TIME),
                 play_root: VolumeInfo::FullVolume,
                 play_challenge: VolumeInfo::Silent,
                 play_answer: VolumeInfo::Silent,
-                play_voice_answer: VolumeInfo::Silent,
+                play_voice_answer: None,
             },
             // Answer
             GeneratorTestCase {
@@ -735,28 +788,28 @@ mod tests {
                 play_root: VolumeInfo::FullVolume,
                 play_challenge: VolumeInfo::Silent,
                 play_answer: VolumeInfo::FadeIn,
-                play_voice_answer: VolumeInfo::Silent,
+                play_voice_answer: None,
             },
             GeneratorTestCase {
                 elapsed: Duration::from_secs(RELATIVE_ANSWER_FULL_VOLUME_START_TIME),
                 play_root: VolumeInfo::FullVolume,
                 play_challenge: VolumeInfo::Silent,
                 play_answer: VolumeInfo::FullVolume,
-                play_voice_answer: VolumeInfo::Silent,
+                play_voice_answer: None,
             },
             GeneratorTestCase {
                 elapsed: Duration::from_secs(RELATIVE_ANSWER_FADE_OUT_START_TIME),
                 play_root: VolumeInfo::FullVolume,
                 play_challenge: VolumeInfo::Silent,
                 play_answer: VolumeInfo::FadeOut,
-                play_voice_answer: VolumeInfo::Silent,
+                play_voice_answer: None,
             },
             GeneratorTestCase {
                 elapsed: Duration::from_secs(RELATIVE_ANSWER_END_TIME),
                 play_root: VolumeInfo::FadeOut,
                 play_challenge: VolumeInfo::Silent,
                 play_answer: VolumeInfo::Silent,
-                play_voice_answer: VolumeInfo::Silent,
+                play_voice_answer: None,
             },
             // End
             GeneratorTestCase {
@@ -764,7 +817,7 @@ mod tests {
                 play_root: VolumeInfo::Silent,
                 play_challenge: VolumeInfo::Silent,
                 play_answer: VolumeInfo::Silent,
-                play_voice_answer: VolumeInfo::Silent,
+                play_voice_answer: None,
             },
         ];
 
@@ -774,7 +827,11 @@ mod tests {
             assert_eq!(case.play_root, command.play_root);
             assert_eq!(case.play_challenge, command.play_challenge);
             assert_eq!(case.play_answer, command.play_answer);
-            assert_eq!(case.play_voice_answer, command.play_voice_answer);
+            if case.play_voice_answer.is_some() {
+                assert!(command.play_voice_answer.is_some());
+            } else {
+                assert!(command.play_voice_answer.is_none());
+            }
         }
     }
 }

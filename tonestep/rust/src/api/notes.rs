@@ -103,17 +103,5 @@ pub fn get_all_notes() -> HashSet<Note> {
     ])
 }
 
-#[derive(Copy, Clone)]
-pub struct Exercise {
-    pub root: Note,
-    pub relative: Note,
-}
-
-impl Exercise {
-    pub fn new(root: Note, relative: Note) -> Exercise {
-        Exercise { root, relative }
-    }
-}
-
 pub fn stop() -> () {}
 pub fn play_exercise() -> () {}
