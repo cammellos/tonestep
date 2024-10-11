@@ -64,6 +64,14 @@ pub fn stop_playing() {
 
 struct Player {}
 
+#[derive(Debug, PartialEq, Eq)]
+enum VolumeInfo {
+    FadeIn,
+    FadeOut,
+    FullVolume,
+    Silent,
+}
+
 impl Player {
     fn new() -> Player {
         Player {}
@@ -122,16 +130,14 @@ impl Player {
         let fade_out_duration = Duration::from_secs(FADE_OUT_DURATION); // First tone fade-out duration
 
         for frame in iter.by_ref() {
-            // Calculate fade-in factor for the first tone
-            let fade_in_factor1 = if elapsed < fade_in_duration {
-                elapsed.as_secs_f32() / fade_in_duration.as_secs_f32()
-            } else if elapsed >= Duration::from_secs(EXERCISE_DURATION - FADE_OUT_DURATION)
-                && elapsed < Duration::from_secs(EXERCISE_DURATION)
-            {
-                1.0 - ((elapsed.as_secs_f32() - (EXERCISE_DURATION - FADE_OUT_DURATION) as f32)
-                    / fade_out_duration.as_secs_f32())
-            } else {
-                1.0 // Full volume after fade-in duration
+            let fade_in_factor1 = match exercise_generator.root_tone_volume_info() {
+                VolumeInfo::FadeIn => elapsed.as_secs_f32() / fade_in_duration.as_secs_f32(),
+                VolumeInfo::FadeOut => {
+                    1.0 - ((elapsed.as_secs_f32() - (EXERCISE_DURATION - FADE_OUT_DURATION) as f32)
+                        / fade_out_duration.as_secs_f32())
+                }
+                VolumeInfo::FullVolume => 1.0,
+                VolumeInfo::Silent => 0.0,
             };
 
             // First tone (always plays)
@@ -237,6 +243,25 @@ impl ExerciseGenerator {
 
     fn increment_sample_clock(&mut self) {
         self.sample_clock += 1.0;
+    }
+
+    fn root_tone_volume_info(&self) -> VolumeInfo {
+        Self::_root_tone_volume_info(self.time.elapsed())
+    }
+
+    fn _root_tone_volume_info(elapsed: Duration) -> VolumeInfo {
+        let fade_in_duration = Duration::from_secs(FADE_IN_DURATION);
+        if elapsed < fade_in_duration {
+            VolumeInfo::FadeIn
+        } else if elapsed >= Duration::from_secs(EXERCISE_DURATION - FADE_OUT_DURATION)
+            && elapsed < Duration::from_secs(EXERCISE_DURATION)
+        {
+            VolumeInfo::FadeOut
+        } else if elapsed >= Duration::from_secs(EXERCISE_DURATION) {
+            VolumeInfo::Silent
+        } else {
+            VolumeInfo::FullVolume
+        }
     }
 
     fn current_exercise(&mut self) -> Exercise {
@@ -427,7 +452,7 @@ mod tests {
     }
 
     #[test]
-    fn test_exercise_generator() {
+    fn test_exercise_generator_current_exercise() {
         let mut exercise_generator = ExerciseGenerator::new(HashSet::from([Note::Two])).unwrap();
 
         let exercise_1 = exercise_generator._current_exercise(Duration::from_secs(1));
@@ -453,6 +478,35 @@ mod tests {
         assert!(
             exercise_generator.time.duration_since(Instant::now()) < Duration::from_secs(1),
             "it should reset the timer"
+        );
+    }
+
+    #[test]
+    fn test_exercise_generator_fade_in_root_volume() {
+        assert_eq!(
+            VolumeInfo::FadeIn,
+            ExerciseGenerator::_root_tone_volume_info(Duration::from_secs(0)),
+            "it fades in at the start"
+        );
+
+        assert_eq!(
+            VolumeInfo::FullVolume,
+            ExerciseGenerator::_root_tone_volume_info(Duration::from_secs(FADE_IN_DURATION)),
+            "it goes to full volume after a fade in duration"
+        );
+
+        assert_eq!(
+            VolumeInfo::FadeOut,
+            ExerciseGenerator::_root_tone_volume_info(Duration::from_secs(
+                EXERCISE_DURATION - FADE_OUT_DURATION
+            )),
+            "it starts to fade out at the end"
+        );
+
+        assert_eq!(
+            VolumeInfo::Silent,
+            ExerciseGenerator::_root_tone_volume_info(Duration::from_secs(EXERCISE_DURATION)),
+            "it's silent at the end"
         );
     }
 }
