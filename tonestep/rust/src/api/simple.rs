@@ -10,6 +10,8 @@ use std::time::{Duration, Instant};
 
 use crate::api::notes::{get_all_notes, Exercise, Note};
 
+const EXERCISE_DURATION: u64 = 20;
+
 // Global PlayerManager instance
 lazy_static! {
     static ref PLAYER_MANAGER: Arc<Mutex<PlayerManager>> = PlayerManager::new();
@@ -220,7 +222,11 @@ impl ExerciseGenerator {
     }
 
     fn current_exercise(&mut self) -> Exercise {
-        if self.time.elapsed() > Duration::from_secs(20) {
+        self._current_exercise(self.time.elapsed())
+    }
+
+    fn _current_exercise(&mut self, elapsed: Duration) -> Exercise {
+        if elapsed >= Duration::from_secs(EXERCISE_DURATION) {
             self.exercise = self.next_exercise();
             self.time = Instant::now();
         }
@@ -228,8 +234,12 @@ impl ExerciseGenerator {
     }
 
     fn next_exercise(&self) -> Exercise {
+        let mut root = random_root();
+        while root == self.exercise.root {
+            root = random_root();
+        }
         Exercise {
-            root: random_root(),
+            root,
             relative: self.random_relative(),
         }
     }
@@ -279,13 +289,6 @@ fn relative_note_to_absolute(root: Note, relative: Note) -> Note {
 mod tests {
     use super::*;
     use test_log::test;
-
-    #[test]
-    fn test_player_new() {
-        //let exercise = Exercise::new(Note::Three, Note::One);
-        //let player = Player::new(exercise);
-        assert!(false);
-    }
 
     #[test]
     fn test_root_note_to_frequency() {
@@ -402,6 +405,36 @@ mod tests {
         assert_eq!(
             Note::Five,
             relative_note_to_absolute(Note::Three, Note::Seven)
+        );
+    }
+
+    #[test]
+    fn test_exercise_generator() {
+        let mut exercise_generator = ExerciseGenerator::new(HashSet::from([Note::Two])).unwrap();
+
+        let exercise_1 = exercise_generator._current_exercise(Duration::from_secs(1));
+
+        assert_eq!(
+            exercise_1.relative,
+            Note::Two,
+            "it should pick a note from the selection"
+        );
+
+        exercise_generator.time = Instant::now() + Duration::from_secs(EXERCISE_DURATION);
+
+        assert!(
+            exercise_generator.time.duration_since(Instant::now()) > Duration::from_secs(1),
+            "making sure that duration is correctly calculated"
+        );
+
+        let exercise_2 =
+            exercise_generator._current_exercise(Duration::from_secs(EXERCISE_DURATION));
+
+        assert_ne!(exercise_1.root, exercise_2.root, "it change root tone");
+
+        assert!(
+            exercise_generator.time.duration_since(Instant::now()) < Duration::from_secs(1),
+            "it should reset the timer"
         );
     }
 }
