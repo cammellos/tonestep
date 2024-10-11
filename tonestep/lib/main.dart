@@ -10,7 +10,7 @@ Future<void> main() async {
 }
 
 class NotesProvider {
-  Future<List<notes.Note>> getAllNotes() async {
+  Future<Set<notes.Note>> getAllNotes() async {
     return await notes.getAllNotes();
   }
 }
@@ -69,7 +69,7 @@ class _CreateNewExerciseScreenState extends State<CreateNewExerciseScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('New Exercise')),
-      body: FutureBuilder<List<notes.Note>>(
+      body: FutureBuilder<Set<notes.Note>>(
         future: notesProvider.getAllNotes(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -77,7 +77,7 @@ class _CreateNewExerciseScreenState extends State<CreateNewExerciseScreen> {
           } else if (snapshot.hasError) {
             return Text('Error: ${snapshot.error}');
           } else if (snapshot.hasData) {
-            List<notes.Note> allNotes = snapshot.data ?? [];
+            List<notes.Note> allNotes = (snapshot.data ?? {}).toList();
 	    if (!_isInitialized) {
 	      selectedNotes.addAll(allNotes);
 	      _isInitialized = true;

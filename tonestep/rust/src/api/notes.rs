@@ -86,8 +86,8 @@ impl std::fmt::Display for Note {
 }
 
 // Expose a function that returns all notes
-pub fn get_all_notes() -> Vec<Note> {
-    vec![
+pub fn get_all_notes() -> HashSet<Note> {
+    HashSet::from([
         Note::One,
         Note::FlatTwo,
         Note::Two,
@@ -100,7 +100,7 @@ pub fn get_all_notes() -> Vec<Note> {
         Note::Six,
         Note::FlatSeven,
         Note::Seven,
-    ]
+    ])
 }
 
 #[derive(Copy, Clone)]

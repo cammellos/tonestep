@@ -455,6 +455,14 @@ fn wire__crate__api__simple__stop_playing_impl(
 
 // Section: dart2rust
 
+impl SseDecode for std::collections::HashSet<crate::api::notes::Note> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <Vec<crate::api::notes::Note>>::sse_decode(deserializer);
+        return inner.into_iter().collect();
+    }
+}
+
 impl SseDecode for String {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -638,6 +646,13 @@ impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::api:
 impl flutter_rust_bridge::IntoIntoDart<crate::api::notes::Note> for crate::api::notes::Note {
     fn into_into_dart(self) -> crate::api::notes::Note {
         self
+    }
+}
+
+impl SseEncode for std::collections::HashSet<crate::api::notes::Note> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <Vec<crate::api::notes::Note>>::sse_encode(self.into_iter().collect(), serializer);
     }
 }
 

@@ -83,7 +83,7 @@ abstract class RustLibApi extends BaseApi {
   Future<Exercise> crateApiNotesExerciseNew(
       {required Note root, required Note relative});
 
-  Future<List<Note>> crateApiNotesGetAllNotes();
+  Future<Set<Note>> crateApiNotesGetAllNotes();
 
   Future<Note> crateApiNotesNoteFromNumber({required int n});
 
@@ -141,7 +141,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
-  Future<List<Note>> crateApiNotesGetAllNotes() {
+  Future<Set<Note>> crateApiNotesGetAllNotes() {
     return handler.executeNormal(NormalTask(
       callFfi: (port_) {
         final serializer = SseSerializer(generalizedFrbRustBinding);
@@ -149,7 +149,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             funcId: 2, port: port_);
       },
       codec: SseCodec(
-        decodeSuccessData: sse_decode_list_note,
+        decodeSuccessData: sse_decode_Set_note,
         decodeErrorData: null,
       ),
       constMeta: kCrateApiNotesGetAllNotesConstMeta,
@@ -402,6 +402,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @protected
+  Set<Note> dco_decode_Set_note(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return Set.from(dco_decode_list_note(raw));
+  }
+
+  @protected
   String dco_decode_String(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw as String;
@@ -453,6 +459,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   void dco_decode_unit(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return;
+  }
+
+  @protected
+  Set<Note> sse_decode_Set_note(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_list_note(deserializer);
+    return Set.from(inner);
   }
 
   @protected
@@ -517,6 +530,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   bool sse_decode_bool(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return deserializer.buffer.getUint8() != 0;
+  }
+
+  @protected
+  void sse_encode_Set_note(Set<Note> self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_list_note(self.toList(), serializer);
   }
 
   @protected

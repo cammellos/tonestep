@@ -8,7 +8,7 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 // These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_receiver_is_total_eq`, `clone`, `clone`, `eq`, `fmt`, `fmt`, `hash`
 
-Future<List<Note>> getAllNotes() =>
+Future<Set<Note>> getAllNotes() =>
     RustLib.instance.api.crateApiNotesGetAllNotes();
 
 Future<void> stop() => RustLib.instance.api.crateApiNotesStop();

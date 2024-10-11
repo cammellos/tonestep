@@ -1,19 +1,19 @@
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use lazy_static::lazy_static;
+use rand::prelude::thread_rng;
+use rand::seq::IteratorRandom;
+use rand::Rng;
+use std::collections::HashSet;
 use std::f32::consts::PI;
 use std::sync::{mpsc, Arc, Mutex};
 use std::thread;
 use std::time::{Duration, Instant};
 
-use crate::api::notes::{Exercise, Note};
+use crate::api::notes::{get_all_notes, Exercise, Note};
 
 // Global PlayerManager instance
 lazy_static! {
     static ref PLAYER_MANAGER: Arc<Mutex<PlayerManager>> = PlayerManager::new();
-}
-enum PlayerCommand {
-    StartPlaying,
-    StopPlaying,
 }
 
 struct PlayerManager {
@@ -27,9 +27,8 @@ impl PlayerManager {
     }
 
     fn start_playing(&mut self) {
-        let exercise = Exercise::new(Note::Three, Note::One);
         let mut player = Player::new();
-        self.sender = Some(player.start(exercise));
+        self.sender = Some(player.start(get_all_notes()));
     }
 
     fn stop_playing(&mut self) {
@@ -54,49 +53,11 @@ pub fn init_app() {
 pub fn start_playing() {
     let mut manager = PLAYER_MANAGER.lock().unwrap();
     manager.start_playing();
-    //let exercise = Exercise::new(Note::Three, Note::One);
-    //let mut player = Player::new();
-    //let channel = player.start(exercise);
-    //channel.send(());
-    //thread::sleep(Duration::from_millis(10000));
-    //channel.send(());
 }
 
 pub fn stop_playing() {
     let mut manager = PLAYER_MANAGER.lock().unwrap();
     manager.stop_playing();
-}
-
-// seconds ramping up
-// 4 seconds note
-// 1 second pause
-// 2 seconds solution
-// 4 seconds note
-fn play_sound(receiver: mpsc::Receiver<()>) {
-    /*    let exercise = Exercise::new(Note::Three, Note::One);
-    let mut player = Player::new(exercise);
-
-    let host = cpal::default_host();
-    let device = host
-        .default_output_device()
-        .expect("No output device available");
-    let config = cpal::StreamConfig {
-        channels: 2,
-        sample_rate: cpal::SampleRate(48000),
-        buffer_size: cpal::BufferSize::Default,
-    };
-
-    let stream = device
-        .build_output_stream(
-            &config.into(),
-            move |data: &mut [f32], _| player.write_data_timed(data),
-            err_fn,
-        )
-        .unwrap();
-
-    stream.play().unwrap();
-
-    while receiver.recv().is_ok() {}*/
 }
 
 struct Player {}
@@ -106,11 +67,10 @@ impl Player {
         Player {}
     }
 
-    fn start(&mut self, exercise: Exercise) -> mpsc::Sender<()> {
+    fn start(&mut self, notes: HashSet<Note>) -> mpsc::Sender<()> {
         let (tx, rx) = mpsc::channel();
 
         thread::spawn(move || {
-            println!("RUNNING");
             let host = cpal::default_host();
             let device = host
                 .default_output_device()
@@ -121,26 +81,23 @@ impl Player {
                 buffer_size: cpal::BufferSize::Default,
             };
 
-            let start_time = Instant::now();
             let mut sample_clock = 0f32;
+            let mut exercise_generator = ExerciseGenerator::new(notes).unwrap();
 
             let stream = device
                 .build_output_stream(
                     &config.into(),
                     move |data: &mut [f32], _| {
-                        Self::write_data_timed(data, start_time, exercise, &mut sample_clock)
+                        Self::write_data_timed(data, &mut exercise_generator, &mut sample_clock)
                     },
                     err_fn,
                 )
                 .unwrap();
 
-            println!("RUNNING 2");
             stream.play().unwrap();
             while rx.recv().is_ok() {
-                println!("QUITTING");
                 return;
             }
-            println!("RUNNING 3");
         });
 
         tx
@@ -148,10 +105,10 @@ impl Player {
 
     fn write_data_timed(
         data: &mut [f32],
-        start_time: Instant,
-        exercise: Exercise,
+        exercise_generator: &mut ExerciseGenerator,
         sample_clock: &mut f32,
     ) {
+        let exercise = exercise_generator.current_exercise();
         let amplitude1 = 0.8; // Base volume for the first tone
         let amplitude2 = 0.3; // Base volume for the second tone
         let mut iter = data.chunks_exact_mut(2); // Stereo (left, right)
@@ -160,7 +117,7 @@ impl Player {
         let frequency2 =
             relative_note_to_frequency(relative_note_to_absolute(exercise.root, exercise.relative));
 
-        let elapsed = start_time.elapsed(); // Get the elapsed time since the stream started
+        let elapsed = exercise_generator.time.elapsed(); // Get the elapsed time since the stream started
         let sample_rate = cpal::SampleRate(48000).0 as f32;
 
         // Define fade-in and fade-out durations
@@ -236,6 +193,61 @@ impl Player {
             *sample_clock += 1.0;
         }
     }
+}
+
+#[derive(Clone)]
+struct ExerciseGenerator {
+    notes: HashSet<Note>,
+    exercise: Exercise,
+    time: Instant,
+}
+
+impl ExerciseGenerator {
+    fn new(notes: HashSet<Note>) -> Result<ExerciseGenerator, &'static str> {
+        if notes.is_empty() {
+            return Err("The set of notes cannot be empty");
+        }
+        let time = Instant::now();
+        let exercise = Exercise {
+            root: random_root(),
+            relative: random_relative(notes.clone()),
+        };
+        Ok(ExerciseGenerator {
+            notes,
+            time,
+            exercise,
+        })
+    }
+
+    fn current_exercise(&mut self) -> Exercise {
+        if self.time.elapsed() > Duration::from_secs(20) {
+            self.exercise = self.next_exercise();
+            self.time = Instant::now();
+        }
+        self.exercise
+    }
+
+    fn next_exercise(&self) -> Exercise {
+        Exercise {
+            root: random_root(),
+            relative: self.random_relative(),
+        }
+    }
+
+    fn random_relative(&self) -> Note {
+        random_relative(self.notes.clone())
+    }
+}
+fn random_root() -> Note {
+    random_relative(get_all_notes())
+}
+fn random_relative(notes: HashSet<Note>) -> Note {
+    let mut rng = thread_rng();
+    notes
+        .iter()
+        .choose(&mut rng)
+        .expect("notes cannot be empty")
+        .clone() // Return the enum variant
 }
 
 fn err_fn(err: cpal::StreamError) {
