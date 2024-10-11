@@ -10,18 +10,10 @@ use std::time::{Duration, Instant};
 
 use crate::api::notes::{get_all_notes, Exercise, Note};
 
-const EXERCISE_DURATION: u64 = 20;
 const FADE_IN_DURATION: u64 = 2;
 const FADE_OUT_DURATION: u64 = 2;
 
-const ROOT_FULL_VOLUME_DURATION: u64 = 16;
-
-const ROOT_FADE_IN_START_TIME: u64 = 0;
-const ROOT_FULL_VOLUME_START_TIME: u64 = ROOT_FADE_IN_START_TIME + FADE_IN_DURATION;
-const ROOT_FADE_OUT_START_TIME: u64 = ROOT_FULL_VOLUME_START_TIME + ROOT_FULL_VOLUME_DURATION;
-const ROOT_END_TIME: u64 = ROOT_FADE_OUT_START_TIME + FADE_OUT_DURATION;
-
-const RELATIVE_FULL_VOLUME_DURATION: u64 = 4;
+const RELATIVE_FULL_VOLUME_DURATION: u64 = 3;
 
 const RELATIVE_CHALLENGE_FADE_IN_START_TIME: u64 = 2;
 const RELATIVE_CHALLENGE_FULL_VOLUME_START_TIME: u64 =
@@ -36,6 +28,13 @@ const RELATIVE_ANSWER_FULL_VOLUME_START_TIME: u64 =
 const RELATIVE_ANSWER_FADE_OUT_START_TIME: u64 =
     RELATIVE_ANSWER_FULL_VOLUME_START_TIME + RELATIVE_FULL_VOLUME_DURATION;
 const RELATIVE_ANSWER_END_TIME: u64 = RELATIVE_ANSWER_FADE_OUT_START_TIME + FADE_OUT_DURATION;
+
+const ROOT_FADE_IN_START_TIME: u64 = 0;
+const ROOT_FULL_VOLUME_START_TIME: u64 = ROOT_FADE_IN_START_TIME + FADE_IN_DURATION;
+const ROOT_FADE_OUT_START_TIME: u64 = RELATIVE_ANSWER_END_TIME;
+const ROOT_END_TIME: u64 = ROOT_FADE_OUT_START_TIME + FADE_OUT_DURATION;
+
+const ROOT_FULL_VOLUME_DURATION: u64 = ROOT_FADE_OUT_START_TIME - ROOT_FULL_VOLUME_START_TIME;
 
 // Global PlayerManager instance
 lazy_static! {
@@ -160,7 +159,7 @@ impl Player {
             let fade_in_factor1 = match exercise_generator.root_volume_info() {
                 VolumeInfo::FadeIn => elapsed.as_secs_f32() / fade_in_duration.as_secs_f32(),
                 VolumeInfo::FadeOut => {
-                    1.0 - ((elapsed.as_secs_f32() - (EXERCISE_DURATION - FADE_OUT_DURATION) as f32)
+                    1.0 - ((elapsed.as_secs_f32() - (ROOT_END_TIME - FADE_OUT_DURATION) as f32)
                         / fade_out_duration.as_secs_f32())
                 }
                 VolumeInfo::FullVolume => 1.0,
@@ -300,10 +299,11 @@ impl ExerciseGenerator {
     fn _generate_command(elapsed: Duration) -> ExerciseCommand {
         let play_root = Self::_root_volume_info(elapsed);
         let play_challenge = Self::_relative_challenge_volume_info(elapsed);
+        let play_answer = Self::_relative_answer_volume_info(elapsed);
         ExerciseCommand {
             play_root,
             play_challenge,
-            play_answer: VolumeInfo::Silent,
+            play_answer,
             play_voice_answer: VolumeInfo::Silent,
         }
     }
@@ -346,7 +346,7 @@ impl ExerciseGenerator {
     }
 
     fn _current_exercise(&mut self, elapsed: Duration) -> Exercise {
-        if elapsed >= Duration::from_secs(EXERCISE_DURATION) {
+        if elapsed >= Duration::from_secs(ROOT_END_TIME) {
             self.exercise = self.next_exercise();
             self.time = Instant::now();
         }
@@ -540,15 +540,14 @@ mod tests {
             "it should pick a note from the selection"
         );
 
-        exercise_generator.time = Instant::now() + Duration::from_secs(EXERCISE_DURATION);
+        exercise_generator.time = Instant::now() + Duration::from_secs(ROOT_END_TIME);
 
         assert!(
             exercise_generator.time.duration_since(Instant::now()) > Duration::from_secs(1),
             "making sure that duration is correctly calculated"
         );
 
-        let exercise_2 =
-            exercise_generator._current_exercise(Duration::from_secs(EXERCISE_DURATION));
+        let exercise_2 = exercise_generator._current_exercise(Duration::from_secs(ROOT_END_TIME));
 
         assert_ne!(exercise_1.root, exercise_2.root, "it change root tone");
 
@@ -655,6 +654,7 @@ mod tests {
         );
     }
 
+    #[derive(Debug)]
     struct GeneratorTestCase {
         elapsed: Duration,
         play_root: VolumeInfo,
@@ -673,6 +673,7 @@ mod tests {
                 play_answer: VolumeInfo::Silent,
                 play_voice_answer: VolumeInfo::Silent,
             },
+            // Challenge
             GeneratorTestCase {
                 elapsed: Duration::from_secs(RELATIVE_CHALLENGE_FADE_IN_START_TIME),
                 play_root: VolumeInfo::FullVolume,
@@ -680,14 +681,73 @@ mod tests {
                 play_answer: VolumeInfo::Silent,
                 play_voice_answer: VolumeInfo::Silent,
             },
+            GeneratorTestCase {
+                elapsed: Duration::from_secs(RELATIVE_CHALLENGE_FULL_VOLUME_START_TIME),
+                play_root: VolumeInfo::FullVolume,
+                play_challenge: VolumeInfo::FullVolume,
+                play_answer: VolumeInfo::Silent,
+                play_voice_answer: VolumeInfo::Silent,
+            },
+            GeneratorTestCase {
+                elapsed: Duration::from_secs(RELATIVE_CHALLENGE_FADE_OUT_START_TIME),
+                play_root: VolumeInfo::FullVolume,
+                play_challenge: VolumeInfo::FadeOut,
+                play_answer: VolumeInfo::Silent,
+                play_voice_answer: VolumeInfo::Silent,
+            },
+            GeneratorTestCase {
+                elapsed: Duration::from_secs(RELATIVE_CHALLENGE_END_TIME),
+                play_root: VolumeInfo::FullVolume,
+                play_challenge: VolumeInfo::Silent,
+                play_answer: VolumeInfo::Silent,
+                play_voice_answer: VolumeInfo::Silent,
+            },
+            // Answer
+            GeneratorTestCase {
+                elapsed: Duration::from_secs(RELATIVE_ANSWER_FADE_IN_START_TIME),
+                play_root: VolumeInfo::FullVolume,
+                play_challenge: VolumeInfo::Silent,
+                play_answer: VolumeInfo::FadeIn,
+                play_voice_answer: VolumeInfo::Silent,
+            },
+            GeneratorTestCase {
+                elapsed: Duration::from_secs(RELATIVE_ANSWER_FULL_VOLUME_START_TIME),
+                play_root: VolumeInfo::FullVolume,
+                play_challenge: VolumeInfo::Silent,
+                play_answer: VolumeInfo::FullVolume,
+                play_voice_answer: VolumeInfo::Silent,
+            },
+            GeneratorTestCase {
+                elapsed: Duration::from_secs(RELATIVE_ANSWER_FADE_OUT_START_TIME),
+                play_root: VolumeInfo::FullVolume,
+                play_challenge: VolumeInfo::Silent,
+                play_answer: VolumeInfo::FadeOut,
+                play_voice_answer: VolumeInfo::Silent,
+            },
+            GeneratorTestCase {
+                elapsed: Duration::from_secs(RELATIVE_ANSWER_END_TIME),
+                play_root: VolumeInfo::FadeOut,
+                play_challenge: VolumeInfo::Silent,
+                play_answer: VolumeInfo::Silent,
+                play_voice_answer: VolumeInfo::Silent,
+            },
+            // End
+            GeneratorTestCase {
+                elapsed: Duration::from_secs(ROOT_END_TIME),
+                play_root: VolumeInfo::Silent,
+                play_challenge: VolumeInfo::Silent,
+                play_answer: VolumeInfo::Silent,
+                play_voice_answer: VolumeInfo::Silent,
+            },
         ];
 
         for case in test_cases {
+            log::debug!("testing: {:?}", case);
             let command = ExerciseGenerator::_generate_command(case.elapsed);
             assert_eq!(case.play_root, command.play_root);
             assert_eq!(case.play_challenge, command.play_challenge);
-            // assert_eq!(case.play_answer, command.play_answer);
-            //assert_eq!(case.play_voice_answer, command.play_voice_answer);
+            assert_eq!(case.play_answer, command.play_answer);
+            assert_eq!(case.play_voice_answer, command.play_voice_answer);
         }
     }
 }
