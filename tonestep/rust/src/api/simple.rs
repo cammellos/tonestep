@@ -11,6 +11,12 @@ use std::time::{Duration, Instant};
 use crate::api::notes::{get_all_notes, Exercise, Note};
 
 const EXERCISE_DURATION: u64 = 20;
+const FADE_IN_DURATION: u64 = 2;
+const FADE_OUT_DURATION: u64 = 2;
+const RELATIVE_CHALLENGE_START_TIME: u64 = 2;
+const RELATIVE_CHALLENGE_TOTAL_TIME: u64 = FADE_IN_DURATION + FADE_OUT_DURATION + 4;
+const RELATIVE_CHALLENGE_STOP_TIME: u64 =
+    RELATIVE_CHALLENGE_START_TIME + RELATIVE_CHALLENGE_TOTAL_TIME;
 
 // Global PlayerManager instance
 lazy_static! {
@@ -112,17 +118,18 @@ impl Player {
         let sample_rate = cpal::SampleRate(48000).0 as f32;
 
         // Define fade-in and fade-out durations
-        let fade_in_duration1 = Duration::from_secs(2); // First tone fade-in duration
-        let fade_in_duration2 = Duration::from_secs(2); // Second tone fade-in duration
-        let fade_out_duration1 = Duration::from_secs(4); // First tone fade-out duration
-        let fade_out_duration2 = Duration::from_secs(4); // Second tone fade-out duration
+        let fade_in_duration = Duration::from_secs(FADE_IN_DURATION); // First tone fade-in duration
+        let fade_out_duration = Duration::from_secs(FADE_OUT_DURATION); // First tone fade-out duration
 
         for frame in iter.by_ref() {
             // Calculate fade-in factor for the first tone
-            let fade_in_factor1 = if elapsed < fade_in_duration1 {
-                elapsed.as_secs_f32() / fade_in_duration1.as_secs_f32()
-            } else if elapsed >= Duration::from_secs(16) && elapsed < Duration::from_secs(20) {
-                1.0 - ((elapsed.as_secs_f32() - 16.0) / fade_out_duration1.as_secs_f32())
+            let fade_in_factor1 = if elapsed < fade_in_duration {
+                elapsed.as_secs_f32() / fade_in_duration.as_secs_f32()
+            } else if elapsed >= Duration::from_secs(EXERCISE_DURATION - FADE_OUT_DURATION)
+                && elapsed < Duration::from_secs(EXERCISE_DURATION)
+            {
+                1.0 - ((elapsed.as_secs_f32() - (EXERCISE_DURATION - FADE_OUT_DURATION) as f32)
+                    / fade_out_duration.as_secs_f32())
             } else {
                 1.0 // Full volume after fade-in duration
             };
@@ -150,21 +157,30 @@ impl Player {
             };
 
             // Calculate fade-in and fade-out factor for the second tone
-            let fade_in_factor2 = if elapsed >= Duration::from_secs(4)
-                && elapsed < Duration::from_secs(6)
+            let fade_in_factor2 = if elapsed >= Duration::from_secs(RELATIVE_CHALLENGE_START_TIME)
+                && elapsed < Duration::from_secs(RELATIVE_CHALLENGE_START_TIME + FADE_IN_DURATION)
             {
-                (elapsed.as_secs_f32() - 4.0) / fade_in_duration2.as_secs_f32() // Gradual fade-in from 4s to 6s
-            } else if elapsed >= Duration::from_secs(6) && elapsed < Duration::from_secs(8) {
+                (elapsed.as_secs_f32() - FADE_IN_DURATION as f32) / fade_in_duration.as_secs_f32()
+            // Gradual fade-in from 4s to 6s
+            } else if elapsed
+                >= Duration::from_secs(RELATIVE_CHALLENGE_START_TIME + FADE_IN_DURATION)
+                && elapsed < Duration::from_secs(RELATIVE_CHALLENGE_STOP_TIME - FADE_OUT_DURATION)
+            {
                 1.0 // Full volume between 6s and 8s
-            } else if elapsed >= Duration::from_secs(8) && elapsed < Duration::from_secs(12) {
-                1.0 - ((elapsed.as_secs_f32() - 8.0) / fade_out_duration2.as_secs_f32())
+            } else if elapsed
+                >= Duration::from_secs(RELATIVE_CHALLENGE_STOP_TIME - FADE_OUT_DURATION)
+                && elapsed < Duration::from_secs(RELATIVE_CHALLENGE_STOP_TIME)
+            {
+                1.0 - ((elapsed.as_secs_f32() - 8.0) / fade_out_duration.as_secs_f32())
             // Gradual fade-out from 8s to 12s
             } else {
                 0.0 // Silence before fade-in or after fade-out
             };
 
             // Second tone (starts after 4 seconds, fades out after 8 seconds)
-            let value2 = if elapsed >= Duration::from_secs(4) && elapsed < Duration::from_secs(12) {
+            let value2 = if elapsed >= Duration::from_secs(RELATIVE_CHALLENGE_START_TIME)
+                && elapsed < Duration::from_secs(RELATIVE_CHALLENGE_STOP_TIME)
+            {
                 (2.0 * PI * frequency2 * exercise_generator.sample_clock / sample_rate).sin()
                     * amplitude2
                     * fade_in_factor2
