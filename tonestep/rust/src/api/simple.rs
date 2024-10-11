@@ -81,14 +81,13 @@ impl Player {
                 buffer_size: cpal::BufferSize::Default,
             };
 
-            let mut sample_clock = 0f32;
             let mut exercise_generator = ExerciseGenerator::new(notes).unwrap();
 
             let stream = device
                 .build_output_stream(
                     &config.into(),
                     move |data: &mut [f32], _| {
-                        Self::write_data_timed(data, &mut exercise_generator, &mut sample_clock)
+                        Self::write_data_timed(data, &mut exercise_generator)
                     },
                     err_fn,
                 )
@@ -103,11 +102,7 @@ impl Player {
         tx
     }
 
-    fn write_data_timed(
-        data: &mut [f32],
-        exercise_generator: &mut ExerciseGenerator,
-        sample_clock: &mut f32,
-    ) {
+    fn write_data_timed(data: &mut [f32], exercise_generator: &mut ExerciseGenerator) {
         let exercise = exercise_generator.current_exercise();
         let amplitude1 = 0.8; // Base volume for the first tone
         let amplitude2 = 0.3; // Base volume for the second tone
@@ -136,17 +131,22 @@ impl Player {
 
             // First tone (always plays)
             let value1 = {
-                let harmonic1 = (2.0 * PI * (frequency1 * 2.0) * *sample_clock / sample_rate).sin()
+                let harmonic1 = (2.0 * PI * (frequency1 * 2.0) * exercise_generator.sample_clock
+                    / sample_rate)
+                    .sin()
                     * amplitude1
                     * 0.2; // Octave harmonic
-                let harmonic2 = (2.0 * PI * (frequency1 * 3.0) * *sample_clock / sample_rate).sin()
+                let harmonic2 = (2.0 * PI * (frequency1 * 3.0) * exercise_generator.sample_clock
+                    / sample_rate)
+                    .sin()
                     * amplitude1
                     * 0.1; // Fifth harmonic
 
-                let base_value = (2.0 * PI * frequency1 * *sample_clock / sample_rate).sin()
-                    * amplitude1
-                    + harmonic1
-                    + harmonic2;
+                let base_value =
+                    (2.0 * PI * frequency1 * exercise_generator.sample_clock / sample_rate).sin()
+                        * amplitude1
+                        + harmonic1
+                        + harmonic2;
 
                 base_value * fade_in_factor1 // Apply fade-in factor to the first tone
             };
@@ -167,7 +167,7 @@ impl Player {
 
             // Second tone (starts after 4 seconds, fades out after 8 seconds)
             let value2 = if elapsed >= Duration::from_secs(4) && elapsed < Duration::from_secs(12) {
-                (2.0 * PI * frequency2 * *sample_clock / sample_rate).sin()
+                (2.0 * PI * frequency2 * exercise_generator.sample_clock / sample_rate).sin()
                     * amplitude2
                     * fade_in_factor2
             } else {
@@ -190,7 +190,7 @@ impl Player {
             frame[0] = cpal::Sample::from(&(combined_left * normalization_factor as f32)); // Left channel
             frame[1] = cpal::Sample::from(&(combined_right * normalization_factor as f32)); // Right channel
 
-            *sample_clock += 1.0;
+            exercise_generator.increment_sample_clock();
         }
     }
 }
@@ -200,6 +200,7 @@ struct ExerciseGenerator {
     notes: HashSet<Note>,
     exercise: Exercise,
     time: Instant,
+    sample_clock: f32,
 }
 
 impl ExerciseGenerator {
@@ -216,7 +217,12 @@ impl ExerciseGenerator {
             notes,
             time,
             exercise,
+            sample_clock: 0f32,
         })
+    }
+
+    fn increment_sample_clock(&mut self) {
+        self.sample_clock += 1.0;
     }
 
     fn current_exercise(&mut self) -> Exercise {
