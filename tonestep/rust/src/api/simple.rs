@@ -2,7 +2,6 @@ use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use lazy_static::lazy_static;
 use rand::prelude::thread_rng;
 use rand::seq::IteratorRandom;
-use rand::Rng;
 use std::collections::HashSet;
 use std::f32::consts::PI;
 use std::sync::{mpsc, Arc, Mutex};
@@ -37,11 +36,6 @@ impl PlayerManager {
             None => Ok(()),
         };
     }
-}
-
-#[flutter_rust_bridge::frb(sync)] // Synchronous mode for simplicity of the demo
-pub fn greet(name: String) -> String {
-    format!("Hello, {name}!")
 }
 
 #[flutter_rust_bridge::frb(init)]
