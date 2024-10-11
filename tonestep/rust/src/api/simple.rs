@@ -121,6 +121,8 @@ impl Player {
             // Calculate fade-in factor for the first tone
             let fade_in_factor1 = if elapsed < fade_in_duration1 {
                 elapsed.as_secs_f32() / fade_in_duration1.as_secs_f32()
+            } else if elapsed >= Duration::from_secs(16) && elapsed < Duration::from_secs(20) {
+                1.0 - ((elapsed.as_secs_f32() - 16.0) / fade_out_duration1.as_secs_f32())
             } else {
                 1.0 // Full volume after fade-in duration
             };
