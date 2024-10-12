@@ -76,12 +76,11 @@ class _HomeScreenScreenState extends State<HomeScreenScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: note_utils.alteredNotes(allNotes).map((note) {
-                        return Expanded(
-                            child: SquareCell(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: allNotes.take(4).map((note) {
+                        return SquareButton(
                                 selected: selectedNotes.contains(note),
-                                note: note,
+                                label: note_utils.toString(note),
                                 onPressed: () {
                                   setState(() {
                                     if (selectedNotes.contains(note)) {
@@ -90,15 +89,14 @@ class _HomeScreenScreenState extends State<HomeScreenScreen> {
                                       selectedNotes.add(note);
                                     }
                                   });
-                                }));
-                      }).toList()),
-                  Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: note_utils.naturalNotes(allNotes).map((note) {
-                        return Expanded(
-                            child: SquareCell(
+                                });
+		      }).toList()),
+		      Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: allNotes.skip(4).take(4).map((note) {
+                        return SquareButton(
                                 selected: selectedNotes.contains(note),
-                                note: note,
+                                label: note_utils.toString(note),
                                 onPressed: () {
                                   setState(() {
                                     if (selectedNotes.contains(note)) {
@@ -107,8 +105,25 @@ class _HomeScreenScreenState extends State<HomeScreenScreen> {
                                       selectedNotes.add(note);
                                     }
                                   });
-                                }));
-                      }).toList()),
+                                });
+		      }).toList()),
+Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: allNotes.skip(8).take(4).map((note) {
+                        return SquareButton(
+                                selected: selectedNotes.contains(note),
+                                label: note_utils.toString(note),
+                                onPressed: () {
+                                  setState(() {
+                                    if (selectedNotes.contains(note)) {
+                                      selectedNotes.remove(note);
+                                    } else {
+                                      selectedNotes.add(note);
+                                    }
+                                  });
+                                });
+		      }).toList()),
+
                   Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                     ElevatedButton(
                         onPressed: () => api.startPlaying(notes: selectedNotes),
@@ -162,6 +177,36 @@ class SquareCell extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+class SquareButton extends StatelessWidget {
+  final String label;
+  final VoidCallback onPressed;
+  final bool selected;
+
+  SquareButton({required this.label, required this.onPressed, required this.selected});
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child:  Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 5.0),
+      child: AspectRatio(
+                    aspectRatio: 1, // Makes the button square
+                    child: ElevatedButton(
+        style: ElevatedButton.styleFrom(
+	backgroundColor: selected ? AppColors.primary : AppColors.secondary,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12), // Rounded corners
+          ),
+        ),
+        onPressed: onPressed,
+        child: Text(label, style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold, color: selected? AppColors.onPrimary : AppColors.onSecondary)),
+      ),
+      ),
+      ),
     );
   }
 }

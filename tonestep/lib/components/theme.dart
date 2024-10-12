@@ -5,7 +5,7 @@ class AppColors {
   static const Color primaryContainer = Color(0xFF609B8A); // Darker teal
   static const Color secondary = Color(0xFFF2A679); // Orange
   static const Color secondaryContainer = Color(0xFFDB8F63); // Darker orange
-  static const Color surface = Color(0xFF222638); // Deep dark for surfaces
+  static const Color surface = Color(0xFFD6D3D2); // Deep dark for surfaces
   static const Color error = Color(0xFFD97E64); // Warm red-pink
   static const Color onPrimary = Colors.white; // Text color on primary
   static const Color onSecondary = Colors.black; // Text on accent
@@ -38,10 +38,10 @@ class AppTheme {
       ),
       textTheme: const TextTheme(
         displayLarge: TextStyle(
-            color: AppColors.surface,
+            color: AppColors.primary,
             fontSize: 32,
             fontWeight: FontWeight.bold),
-        bodyLarge: TextStyle(color: AppColors.surface, fontSize: 16),
+        bodyLarge: TextStyle(color: AppColors.primary, fontSize: 16),
       ),
     );
   }
