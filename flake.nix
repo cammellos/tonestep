@@ -26,7 +26,7 @@
         includeNDK = true;
         ndkVersion = "23.1.7779620";
         buildToolsVersions = [ buildToolsVersion "30.0.3" ];
-        platformVersions = [ "33" "34" ];
+        platformVersions = ["31" "33" "34" ];
       };
 
     in {
