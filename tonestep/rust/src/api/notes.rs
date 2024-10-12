@@ -20,7 +20,6 @@ pub enum Note {
 
 impl Note {
     pub fn from_number(n: i32) -> Note {
-        log::info!("trnasformaing: {}", n);
         match n {
             0 => Note::One,
             1 => Note::FlatTwo,

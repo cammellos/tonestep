@@ -6,10 +6,6 @@
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These functions are ignored because they are not marked as `pub`: `_current_exercise`, `_generate_command`, `_relative_answer_volume_info`, `_relative_challenge_volume_info`, `_root_volume_info`, `calculate_volume_info`, `current_exercise`, `err_fn`, `generate_command`, `generate_piano_frequency`, `get_next_sample`, `increment_sample_clock`, `new`, `new`, `new`, `new`, `new`, `new`, `next_exercise`, `random_relative`, `random_relative`, `random_root`, `relative_answer_volume_info`, `relative_challenge_volume_info`, `relative_note_to_absolute`, `relative_note_to_frequency`, `root_note_to_frequency`, `root_volume_info`, `start_playing`, `start`, `stop_playing`, `write_data_timed`
-// These types are ignored because they are not used by any `pub` functions: `ExerciseCommand`, `ExerciseGenerator`, `Exercise`, `PLAYER_MANAGER`, `PlayerManager`, `Player`, `VolumeInfo`, `VolumeTimings`, `WavFile`
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_receiver_is_total_eq`, `clone`, `clone`, `deref`, `eq`, `fmt`, `initialize`
-
 Future<void> startPlaying() =>
     RustLib.instance.api.crateApiSimpleStartPlaying();
 
