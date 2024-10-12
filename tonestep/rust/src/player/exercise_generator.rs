@@ -131,11 +131,27 @@ impl ExerciseGenerator {
     }
 
     pub fn generate_command(&self) -> ExerciseCommand {
-        Self::_generate_command(self.time.elapsed())
+        Self::_generate_command(
+            self.time.elapsed(),
+            self.current_repetition == 1,
+            self.current_repetition == self.repetitions,
+        )
     }
 
-    fn _generate_command(elapsed: Duration) -> ExerciseCommand {
-        let play_root = Self::_root_volume_info(elapsed);
+    fn _generate_command(
+        elapsed: Duration,
+        fade_in_root: bool,
+        fade_out_root: bool,
+    ) -> ExerciseCommand {
+        let mut play_root = Self::_root_volume_info(elapsed);
+        if play_root == VolumeInfo::FadeIn && !fade_in_root {
+            play_root = VolumeInfo::FullVolume;
+        }
+
+        if (play_root == VolumeInfo::FadeOut || play_root == VolumeInfo::Silent) && !fade_out_root {
+            play_root = VolumeInfo::FullVolume;
+        }
+
         let play_challenge = Self::_relative_challenge_volume_info(elapsed);
         let play_answer = Self::_relative_answer_volume_info(elapsed);
         let play_voice_answer = elapsed >= Duration::from_secs(PLAY_VOICE_ANSWER_START_TIME);
@@ -605,7 +621,7 @@ mod tests {
     }
 
     #[test]
-    fn test_exercise_generator_command() {
+    fn test_exercise_generator_command_fade_root() {
         let test_cases = vec![
             GeneratorTestCase {
                 elapsed: Duration::from_secs(0),
@@ -692,7 +708,295 @@ mod tests {
 
         for case in test_cases {
             log::debug!("testing: {:?}", case);
-            let command = ExerciseGenerator::_generate_command(case.elapsed);
+            let command = ExerciseGenerator::_generate_command(case.elapsed, true, true);
+            assert_eq!(case.play_root, command.play_root);
+            assert_eq!(case.play_challenge, command.play_challenge);
+            assert_eq!(case.play_answer, command.play_answer);
+            assert_eq!(case.play_voice_answer, command.play_voice_answer);
+        }
+    }
+
+    #[test]
+    fn test_exercise_generator_command_dont_fade_root() {
+        let test_cases = vec![
+            GeneratorTestCase {
+                elapsed: Duration::from_secs(0),
+                play_root: VolumeInfo::FullVolume,
+                play_challenge: VolumeInfo::Silent,
+                play_answer: VolumeInfo::Silent,
+                play_voice_answer: false,
+            },
+            // Challenge
+            GeneratorTestCase {
+                elapsed: Duration::from_secs(RELATIVE_CHALLENGE_FADE_IN_START_TIME),
+                play_root: VolumeInfo::FullVolume,
+                play_challenge: VolumeInfo::FadeIn,
+                play_answer: VolumeInfo::Silent,
+                play_voice_answer: false,
+            },
+            GeneratorTestCase {
+                elapsed: Duration::from_secs(RELATIVE_CHALLENGE_FULL_VOLUME_START_TIME),
+                play_root: VolumeInfo::FullVolume,
+                play_challenge: VolumeInfo::FullVolume,
+                play_answer: VolumeInfo::Silent,
+                play_voice_answer: false,
+            },
+            GeneratorTestCase {
+                elapsed: Duration::from_secs(RELATIVE_CHALLENGE_FADE_OUT_START_TIME),
+                play_root: VolumeInfo::FullVolume,
+                play_challenge: VolumeInfo::FadeOut,
+                play_answer: VolumeInfo::Silent,
+                play_voice_answer: false,
+            },
+            GeneratorTestCase {
+                elapsed: Duration::from_secs(RELATIVE_CHALLENGE_END_TIME),
+                play_root: VolumeInfo::FullVolume,
+                play_challenge: VolumeInfo::Silent,
+                play_answer: VolumeInfo::Silent,
+                play_voice_answer: false,
+            },
+            // Voice
+            GeneratorTestCase {
+                elapsed: Duration::from_secs(PLAY_VOICE_ANSWER_START_TIME),
+                play_root: VolumeInfo::FullVolume,
+                play_challenge: VolumeInfo::Silent,
+                play_answer: VolumeInfo::Silent,
+                play_voice_answer: true,
+            },
+            // Answer
+            GeneratorTestCase {
+                elapsed: Duration::from_secs(RELATIVE_ANSWER_FADE_IN_START_TIME),
+                play_root: VolumeInfo::FullVolume,
+                play_challenge: VolumeInfo::Silent,
+                play_answer: VolumeInfo::FadeIn,
+                play_voice_answer: true,
+            },
+            GeneratorTestCase {
+                elapsed: Duration::from_secs(RELATIVE_ANSWER_FULL_VOLUME_START_TIME),
+                play_root: VolumeInfo::FullVolume,
+                play_challenge: VolumeInfo::Silent,
+                play_answer: VolumeInfo::FullVolume,
+                play_voice_answer: true,
+            },
+            GeneratorTestCase {
+                elapsed: Duration::from_secs(RELATIVE_ANSWER_FADE_OUT_START_TIME),
+                play_root: VolumeInfo::FullVolume,
+                play_challenge: VolumeInfo::Silent,
+                play_answer: VolumeInfo::FadeOut,
+                play_voice_answer: true,
+            },
+            GeneratorTestCase {
+                elapsed: Duration::from_secs(RELATIVE_ANSWER_END_TIME),
+                play_root: VolumeInfo::FullVolume,
+                play_challenge: VolumeInfo::Silent,
+                play_answer: VolumeInfo::Silent,
+                play_voice_answer: true,
+            },
+            // End
+            GeneratorTestCase {
+                elapsed: Duration::from_secs(ROOT_END_TIME),
+                play_root: VolumeInfo::FullVolume,
+                play_challenge: VolumeInfo::Silent,
+                play_answer: VolumeInfo::Silent,
+                play_voice_answer: true,
+            },
+        ];
+
+        for case in test_cases {
+            log::debug!("testing: {:?}", case);
+            let command = ExerciseGenerator::_generate_command(case.elapsed, false, false);
+            assert_eq!(case.play_root, command.play_root);
+            assert_eq!(case.play_challenge, command.play_challenge);
+            assert_eq!(case.play_answer, command.play_answer);
+            assert_eq!(case.play_voice_answer, command.play_voice_answer);
+        }
+    }
+
+    #[test]
+    fn test_exercise_generator_command_dont_fade_in_root() {
+        let test_cases = vec![
+            GeneratorTestCase {
+                elapsed: Duration::from_secs(0),
+                play_root: VolumeInfo::FadeIn,
+                play_challenge: VolumeInfo::Silent,
+                play_answer: VolumeInfo::Silent,
+                play_voice_answer: false,
+            },
+            // Challenge
+            GeneratorTestCase {
+                elapsed: Duration::from_secs(RELATIVE_CHALLENGE_FADE_IN_START_TIME),
+                play_root: VolumeInfo::FullVolume,
+                play_challenge: VolumeInfo::FadeIn,
+                play_answer: VolumeInfo::Silent,
+                play_voice_answer: false,
+            },
+            GeneratorTestCase {
+                elapsed: Duration::from_secs(RELATIVE_CHALLENGE_FULL_VOLUME_START_TIME),
+                play_root: VolumeInfo::FullVolume,
+                play_challenge: VolumeInfo::FullVolume,
+                play_answer: VolumeInfo::Silent,
+                play_voice_answer: false,
+            },
+            GeneratorTestCase {
+                elapsed: Duration::from_secs(RELATIVE_CHALLENGE_FADE_OUT_START_TIME),
+                play_root: VolumeInfo::FullVolume,
+                play_challenge: VolumeInfo::FadeOut,
+                play_answer: VolumeInfo::Silent,
+                play_voice_answer: false,
+            },
+            GeneratorTestCase {
+                elapsed: Duration::from_secs(RELATIVE_CHALLENGE_END_TIME),
+                play_root: VolumeInfo::FullVolume,
+                play_challenge: VolumeInfo::Silent,
+                play_answer: VolumeInfo::Silent,
+                play_voice_answer: false,
+            },
+            // Voice
+            GeneratorTestCase {
+                elapsed: Duration::from_secs(PLAY_VOICE_ANSWER_START_TIME),
+                play_root: VolumeInfo::FullVolume,
+                play_challenge: VolumeInfo::Silent,
+                play_answer: VolumeInfo::Silent,
+                play_voice_answer: true,
+            },
+            // Answer
+            GeneratorTestCase {
+                elapsed: Duration::from_secs(RELATIVE_ANSWER_FADE_IN_START_TIME),
+                play_root: VolumeInfo::FullVolume,
+                play_challenge: VolumeInfo::Silent,
+                play_answer: VolumeInfo::FadeIn,
+                play_voice_answer: true,
+            },
+            GeneratorTestCase {
+                elapsed: Duration::from_secs(RELATIVE_ANSWER_FULL_VOLUME_START_TIME),
+                play_root: VolumeInfo::FullVolume,
+                play_challenge: VolumeInfo::Silent,
+                play_answer: VolumeInfo::FullVolume,
+                play_voice_answer: true,
+            },
+            GeneratorTestCase {
+                elapsed: Duration::from_secs(RELATIVE_ANSWER_FADE_OUT_START_TIME),
+                play_root: VolumeInfo::FullVolume,
+                play_challenge: VolumeInfo::Silent,
+                play_answer: VolumeInfo::FadeOut,
+                play_voice_answer: true,
+            },
+            GeneratorTestCase {
+                elapsed: Duration::from_secs(RELATIVE_ANSWER_END_TIME),
+                play_root: VolumeInfo::FullVolume,
+                play_challenge: VolumeInfo::Silent,
+                play_answer: VolumeInfo::Silent,
+                play_voice_answer: true,
+            },
+            // End
+            GeneratorTestCase {
+                elapsed: Duration::from_secs(ROOT_END_TIME),
+                play_root: VolumeInfo::FullVolume,
+                play_challenge: VolumeInfo::Silent,
+                play_answer: VolumeInfo::Silent,
+                play_voice_answer: true,
+            },
+        ];
+
+        for case in test_cases {
+            log::debug!("testing: {:?}", case);
+            let command = ExerciseGenerator::_generate_command(case.elapsed, true, false);
+            assert_eq!(case.play_root, command.play_root);
+            assert_eq!(case.play_challenge, command.play_challenge);
+            assert_eq!(case.play_answer, command.play_answer);
+            assert_eq!(case.play_voice_answer, command.play_voice_answer);
+        }
+    }
+
+    #[test]
+    fn test_exercise_generator_command_dont_fade_out_root() {
+        let test_cases = vec![
+            GeneratorTestCase {
+                elapsed: Duration::from_secs(0),
+                play_root: VolumeInfo::FullVolume,
+                play_challenge: VolumeInfo::Silent,
+                play_answer: VolumeInfo::Silent,
+                play_voice_answer: false,
+            },
+            // Challenge
+            GeneratorTestCase {
+                elapsed: Duration::from_secs(RELATIVE_CHALLENGE_FADE_IN_START_TIME),
+                play_root: VolumeInfo::FullVolume,
+                play_challenge: VolumeInfo::FadeIn,
+                play_answer: VolumeInfo::Silent,
+                play_voice_answer: false,
+            },
+            GeneratorTestCase {
+                elapsed: Duration::from_secs(RELATIVE_CHALLENGE_FULL_VOLUME_START_TIME),
+                play_root: VolumeInfo::FullVolume,
+                play_challenge: VolumeInfo::FullVolume,
+                play_answer: VolumeInfo::Silent,
+                play_voice_answer: false,
+            },
+            GeneratorTestCase {
+                elapsed: Duration::from_secs(RELATIVE_CHALLENGE_FADE_OUT_START_TIME),
+                play_root: VolumeInfo::FullVolume,
+                play_challenge: VolumeInfo::FadeOut,
+                play_answer: VolumeInfo::Silent,
+                play_voice_answer: false,
+            },
+            GeneratorTestCase {
+                elapsed: Duration::from_secs(RELATIVE_CHALLENGE_END_TIME),
+                play_root: VolumeInfo::FullVolume,
+                play_challenge: VolumeInfo::Silent,
+                play_answer: VolumeInfo::Silent,
+                play_voice_answer: false,
+            },
+            // Voice
+            GeneratorTestCase {
+                elapsed: Duration::from_secs(PLAY_VOICE_ANSWER_START_TIME),
+                play_root: VolumeInfo::FullVolume,
+                play_challenge: VolumeInfo::Silent,
+                play_answer: VolumeInfo::Silent,
+                play_voice_answer: true,
+            },
+            // Answer
+            GeneratorTestCase {
+                elapsed: Duration::from_secs(RELATIVE_ANSWER_FADE_IN_START_TIME),
+                play_root: VolumeInfo::FullVolume,
+                play_challenge: VolumeInfo::Silent,
+                play_answer: VolumeInfo::FadeIn,
+                play_voice_answer: true,
+            },
+            GeneratorTestCase {
+                elapsed: Duration::from_secs(RELATIVE_ANSWER_FULL_VOLUME_START_TIME),
+                play_root: VolumeInfo::FullVolume,
+                play_challenge: VolumeInfo::Silent,
+                play_answer: VolumeInfo::FullVolume,
+                play_voice_answer: true,
+            },
+            GeneratorTestCase {
+                elapsed: Duration::from_secs(RELATIVE_ANSWER_FADE_OUT_START_TIME),
+                play_root: VolumeInfo::FullVolume,
+                play_challenge: VolumeInfo::Silent,
+                play_answer: VolumeInfo::FadeOut,
+                play_voice_answer: true,
+            },
+            GeneratorTestCase {
+                elapsed: Duration::from_secs(RELATIVE_ANSWER_END_TIME),
+                play_root: VolumeInfo::FadeOut,
+                play_challenge: VolumeInfo::Silent,
+                play_answer: VolumeInfo::Silent,
+                play_voice_answer: true,
+            },
+            // End
+            GeneratorTestCase {
+                elapsed: Duration::from_secs(ROOT_END_TIME),
+                play_root: VolumeInfo::Silent,
+                play_challenge: VolumeInfo::Silent,
+                play_answer: VolumeInfo::Silent,
+                play_voice_answer: true,
+            },
+        ];
+
+        for case in test_cases {
+            log::debug!("testing: {:?}", case);
+            let command = ExerciseGenerator::_generate_command(case.elapsed, false, true);
             assert_eq!(case.play_root, command.play_root);
             assert_eq!(case.play_challenge, command.play_challenge);
             assert_eq!(case.play_answer, command.play_answer);
