@@ -11,3 +11,6 @@ Future<void> startPlaying({required Set<Note> notes}) =>
     RustLib.instance.api.crateApiSimpleStartPlaying(notes: notes);
 
 Future<void> stopPlaying() => RustLib.instance.api.crateApiSimpleStopPlaying();
+
+Future<void> initWavFilesFromBytes({required List<Uint8List> wavData}) =>
+    RustLib.instance.api.crateApiSimpleInitWavFilesFromBytes(wavData: wavData);

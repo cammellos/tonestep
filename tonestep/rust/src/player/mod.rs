@@ -1,6 +1,7 @@
 pub mod constants;
 pub mod exercise_generator;
 pub mod manager;
+pub mod wav;
 
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use std::collections::HashSet;

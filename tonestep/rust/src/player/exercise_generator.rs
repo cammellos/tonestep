@@ -1,9 +1,7 @@
 use crate::api::notes::{get_all_notes, Note};
-use hound::WavReader;
 use rand::prelude::thread_rng;
 use rand::seq::IteratorRandom;
 use std::collections::HashSet;
-use std::env;
 use std::time::{Duration, Instant};
 
 use crate::player::constants::{
@@ -12,6 +10,7 @@ use crate::player::constants::{
     RELATIVE_FULL_VOLUME_DURATION, ROOT_END_TIME, ROOT_FADE_IN_START_TIME,
     ROOT_FULL_VOLUME_DURATION,
 };
+use crate::player::wav::{get_wav_file, WavFile};
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum VolumeInfo {
@@ -28,20 +27,17 @@ pub struct Exercise {
 }
 
 impl Exercise {
-    fn new(root: Note, relative: Note) -> Exercise {
-        let wav = WavFile::new(
-            &format!(
-                "{}/resources/{}.wav",
-                env!("CARGO_MANIFEST_DIR"),
-                relative.to_keyboard_note()
-            )
-            .to_string(),
-        );
-        Exercise {
+    fn new(root: Note, relative: Note) -> Result<Self, String> {
+        let key = relative.to_keyboard_note(); // Convert relative to a key (integer)
+
+        // First handle the Result from `get_wav_file`, then the Option
+        let wav = get_wav_file(key).map_err(|e| format!("Error loading WAV file: {}", e))?;
+
+        Ok(Exercise {
             root,
             relative,
             wav,
-        }
+        })
     }
 
     fn get_next_voice_sample(&mut self) -> Option<f32> {
@@ -110,7 +106,7 @@ impl ExerciseGenerator {
             return Err("The set of notes cannot be empty");
         }
         let time = Instant::now();
-        let exercise = Exercise::new(random_root(), random_relative(notes.clone()));
+        let exercise = Exercise::new(random_root(), random_relative(notes.clone())).unwrap();
         Ok(ExerciseGenerator {
             notes,
             repetitions,
@@ -228,11 +224,11 @@ impl ExerciseGenerator {
         while root == self.exercise.root {
             root = random_root();
         }
-        Exercise::new(root, self.random_relative(false))
+        Exercise::new(root, self.random_relative(false)).unwrap()
     }
 
     fn next_exercise_keeping_root(&self) -> Exercise {
-        Exercise::new(self.exercise.root, self.random_relative(true))
+        Exercise::new(self.exercise.root, self.random_relative(true)).unwrap()
     }
 
     pub fn random_relative(&self, avoid_repetition: bool) -> Note {
@@ -278,36 +274,6 @@ fn relative_note_to_frequency(note: Note) -> f32 {
 fn relative_note_to_absolute(root: Note, relative: Note) -> Note {
     let difference = (relative.to_keyboard_note() - root.to_keyboard_note() + 12) % 12; // Using modulo to wrap around
     Note::from_number(difference)
-}
-
-struct WavFile {
-    current_sample: usize,
-    samples: Vec<f32>,
-}
-
-impl WavFile {
-    fn new(path: &str) -> Self {
-        let mut reader = WavReader::open(path).unwrap();
-        let samples: Vec<f32> = reader
-            .samples::<i16>()
-            .map(|s| s.unwrap() as f32 / i16::MAX as f32) // Normalize samples to [-1.0, 1.0]
-            .collect();
-
-        WavFile {
-            current_sample: 0,
-            samples,
-        }
-    }
-
-    fn get_next_sample(&mut self) -> Option<f32> {
-        if self.current_sample >= self.samples.len() {
-            None // End of file reached
-        } else {
-            let sample = self.samples[self.current_sample];
-            self.current_sample += 1;
-            Some(sample)
-        }
-    }
 }
 
 #[cfg(test)]

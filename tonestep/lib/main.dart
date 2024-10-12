@@ -3,10 +3,29 @@ import 'package:tonestep/src/rust/api/notes.dart' as notes;
 import 'package:tonestep/src/rust/api/simple.dart' as api;
 import 'package:tonestep/src/rust/api/note_utils.dart' as note_utils;
 import 'package:tonestep/src/rust/frb_generated.dart';
+import 'package:flutter/services.dart'; // Import this for rootBundle
 
 Future<void> main() async {
   await RustLib.init();
   runApp(ToneStep());
+
+
+    // Prepare a list to hold the byte data for WAV files
+    List<Uint8List> wavDataList = [];
+
+    // Load WAV files from assets
+    for (int i = 1; i <= 12; i++) {
+      ByteData data = await rootBundle.load('rust/resources/$i.wav');
+      Uint8List bytes = data.buffer.asUint8List();
+      wavDataList.add(bytes);
+    }
+    // Call the Rust function to initialize the WAV files with byte data
+    api.initWavFilesFromBytes(wavData: wavDataList);
+
+
+    // Call the Rust function to initialize the WAV files
+    print("WAV files initialized successfully.");
+
 }
 
 class NotesProvider {
