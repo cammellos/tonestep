@@ -4,9 +4,10 @@
 // ignore_for_file: invalid_use_of_internal_member, unused_import, unnecessary_import
 
 import '../frb_generated.dart';
+import 'notes.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-Future<void> startPlaying() =>
-    RustLib.instance.api.crateApiSimpleStartPlaying();
+Future<void> startPlaying({required Set<Note> notes}) =>
+    RustLib.instance.api.crateApiSimpleStartPlaying(notes: notes);
 
 Future<void> stopPlaying() => RustLib.instance.api.crateApiSimpleStopPlaying();

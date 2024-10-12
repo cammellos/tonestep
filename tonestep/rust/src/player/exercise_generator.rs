@@ -29,7 +29,6 @@ pub struct Exercise {
 
 impl Exercise {
     fn new(root: Note, relative: Note) -> Exercise {
-        //let relative = relative_note_to_absolute(root, relative);
         let wav = WavFile::new(
             &format!(
                 "{}/resources/{}.wav",

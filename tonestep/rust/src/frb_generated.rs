@@ -339,11 +339,13 @@ fn wire__crate__api__simple__start_playing_impl(
             };
             let mut deserializer =
                 flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_notes =
+                <std::collections::HashSet<crate::api::notes::Note>>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| {
                 transform_result_sse::<_, ()>((move || {
                     let output_ok = Result::<_, ()>::Ok({
-                        crate::api::simple::start_playing();
+                        crate::api::simple::start_playing(api_notes);
                     })?;
                     Ok(output_ok)
                 })())

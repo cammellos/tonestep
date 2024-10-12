@@ -96,7 +96,7 @@ abstract class RustLibApi extends BaseApi {
 
   Future<void> crateApiSimpleInitApp();
 
-  Future<void> crateApiSimpleStartPlaying();
+  Future<void> crateApiSimpleStartPlaying({required Set<Note> notes});
 
   Future<void> crateApiSimpleStopPlaying();
 }
@@ -302,10 +302,11 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
-  Future<void> crateApiSimpleStartPlaying() {
+  Future<void> crateApiSimpleStartPlaying({required Set<Note> notes}) {
     return handler.executeNormal(NormalTask(
       callFfi: (port_) {
         final serializer = SseSerializer(generalizedFrbRustBinding);
+        sse_encode_Set_note(notes, serializer);
         pdeCallFfi(generalizedFrbRustBinding, serializer,
             funcId: 9, port: port_);
       },
@@ -314,14 +315,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         decodeErrorData: null,
       ),
       constMeta: kCrateApiSimpleStartPlayingConstMeta,
-      argValues: [],
+      argValues: [notes],
       apiImpl: this,
     ));
   }
 
   TaskConstMeta get kCrateApiSimpleStartPlayingConstMeta => const TaskConstMeta(
         debugName: "start_playing",
-        argNames: [],
+        argNames: ["notes"],
       );
 
   @override

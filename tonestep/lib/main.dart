@@ -124,7 +124,7 @@ class _CreateNewExerciseScreenState extends State<CreateNewExerciseScreen> {
                       mainAxisAlignment: MainAxisAlignment.center,
 		      children: [
 		      TextButton(
-		        onPressed: () => api.startPlaying(),
+		        onPressed: () => api.startPlaying(notes: selectedNotes),
 			child: const Text('Play')
 		      ),
 		      TextButton(

@@ -1,6 +1,7 @@
+use std::collections::HashSet;
 use std::sync::{mpsc, Arc, Mutex};
 
-use crate::api::notes::get_all_notes;
+use crate::api::notes::Note;
 use crate::player::Player;
 
 use lazy_static::lazy_static;
@@ -18,9 +19,9 @@ impl Manager {
         Arc::new(Mutex::new(Manager { sender: None }))
     }
 
-    pub fn start_playing(&mut self) {
+    pub fn start_playing(&mut self, notes: HashSet<Note>) {
         let mut player = Player {};
-        self.sender = Some(player.start(get_all_notes(), 2));
+        self.sender = Some(player.start(notes, 8));
     }
 
     pub fn stop_playing(&mut self) {
@@ -31,9 +32,9 @@ impl Manager {
     }
 }
 
-pub fn start_playing() {
+pub fn start_playing(notes: HashSet<Note>) {
     let mut manager = PLAYER_MANAGER.lock().unwrap();
-    manager.start_playing();
+    manager.start_playing(notes);
 }
 
 pub fn stop_playing() {
