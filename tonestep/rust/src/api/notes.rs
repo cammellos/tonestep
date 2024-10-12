@@ -101,5 +101,21 @@ pub fn get_all_notes() -> HashSet<Note> {
     ])
 }
 
+pub fn all_notes() -> Vec<Note> {
+    vec![
+        Note::One,
+        Note::FlatTwo,
+        Note::Two,
+        Note::FlatThree,
+        Note::Three,
+        Note::Four,
+        Note::SharpFour,
+        Note::Five,
+        Note::FlatSix,
+        Note::Six,
+        Note::FlatSeven,
+        Note::Seven,
+    ]
+}
 pub fn stop() {}
 pub fn play_exercise() {}

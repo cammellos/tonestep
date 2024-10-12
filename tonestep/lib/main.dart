@@ -3,34 +3,27 @@ import 'package:tonestep/src/rust/api/notes.dart' as notes;
 import 'package:tonestep/src/rust/api/simple.dart' as api;
 import 'package:tonestep/src/rust/api/note_utils.dart' as note_utils;
 import 'package:tonestep/src/rust/frb_generated.dart';
-import 'package:flutter/services.dart'; // Import this for rootBundle
+import 'package:tonestep/components/theme.dart';
+import 'package:flutter/services.dart';
 
 Future<void> main() async {
   await RustLib.init();
   runApp(ToneStep());
 
+  List<Uint8List> wavDataList = [];
 
-    // Prepare a list to hold the byte data for WAV files
-    List<Uint8List> wavDataList = [];
+  for (int i = 1; i <= 12; i++) {
+    ByteData data = await rootBundle.load('rust/resources/$i.wav');
+    Uint8List bytes = data.buffer.asUint8List();
+    wavDataList.add(bytes);
+  }
 
-    // Load WAV files from assets
-    for (int i = 1; i <= 12; i++) {
-      ByteData data = await rootBundle.load('rust/resources/$i.wav');
-      Uint8List bytes = data.buffer.asUint8List();
-      wavDataList.add(bytes);
-    }
-    // Call the Rust function to initialize the WAV files with byte data
-    api.initWavFilesFromBytes(wavData: wavDataList);
-
-
-    // Call the Rust function to initialize the WAV files
-    print("WAV files initialized successfully.");
-
+  api.initWavFilesFromBytes(wavData: wavDataList);
 }
 
 class NotesProvider {
-  Future<Set<notes.Note>> getAllNotes() async {
-    return await notes.getAllNotes();
+  Future<List<notes.Note>> allNotes() async {
+    return await notes.allNotes();
   }
 }
 
@@ -42,44 +35,22 @@ class ToneStep extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      home: Scaffold(
-        appBar: AppBar(title: const Text('Musical Notes')),
-        body: const HomeScreen(),
+      theme: AppTheme.themeData,
+      home: const Scaffold(
+        body: HomeScreenScreen(),
       ),
     );
   }
 }
 
-class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
+class HomeScreenScreen extends StatefulWidget {
+  const HomeScreenScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: ElevatedButton(
-        onPressed: () {
-          // Correct context usage here
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (context) => const CreateNewExerciseScreen(),
-            ),
-          );
-        },
-        child: const Text('Create New Exercise'),
-      ),
-    );
-  }
+  State<HomeScreenScreen> createState() => _HomeScreenScreenState();
 }
 
-class CreateNewExerciseScreen extends StatefulWidget {
-  const CreateNewExerciseScreen({super.key});
-
-  @override
-  State<CreateNewExerciseScreen> createState() =>
-      _CreateNewExerciseScreenState();
-}
-
-class _CreateNewExerciseScreenState extends State<CreateNewExerciseScreen> {
+class _HomeScreenScreenState extends State<HomeScreenScreen> {
   final NotesProvider notesProvider = NotesProvider();
   var selectedNotes = <notes.Note>{};
   bool _isInitialized = false;
@@ -87,20 +58,19 @@ class _CreateNewExerciseScreenState extends State<CreateNewExerciseScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('New Exercise')),
-      body: FutureBuilder<Set<notes.Note>>(
-        future: notesProvider.getAllNotes(),
+      body: FutureBuilder<List<notes.Note>>(
+        future: notesProvider.allNotes(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const CircularProgressIndicator();
           } else if (snapshot.hasError) {
             return Text('Error: ${snapshot.error}');
           } else if (snapshot.hasData) {
-            List<notes.Note> allNotes = (snapshot.data ?? {}).toList();
-	    if (!_isInitialized) {
-	      selectedNotes.addAll(allNotes);
-	      _isInitialized = true;
-	    }
+            List<notes.Note> allNotes = (snapshot.data ?? []);
+            if (!_isInitialized) {
+              selectedNotes.addAll(allNotes);
+              _isInitialized = true;
+            }
 
             return Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -139,19 +109,15 @@ class _CreateNewExerciseScreenState extends State<CreateNewExerciseScreen> {
                                   });
                                 }));
                       }).toList()),
-		  Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-		      children: [
-		      TextButton(
-		        onPressed: () => api.startPlaying(notes: selectedNotes),
-			child: const Text('Play')
-		      ),
-		      TextButton(
-			 onPressed: () =>  api.stopPlaying(),
-		         child: const Text('Stop'),
-		      )
-		      ]
-		    )
+                  Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                    ElevatedButton(
+                        onPressed: () => api.startPlaying(notes: selectedNotes),
+                        child: const Text('Play')),
+                    ElevatedButton(
+                      onPressed: () => api.stopPlaying(),
+                      child: const Text('Stop'),
+                    )
+                  ])
                 ]);
           } else {
             return const Text('No notes available');
@@ -184,7 +150,9 @@ class SquareCell extends StatelessWidget {
           width: cellSize,
           margin: const EdgeInsets.all(10.0),
           height: cellSize, // Make the height equal to the width for a square
-          color: selected ? Colors.green : Colors.grey, // Color of the cell
+          color: selected
+              ? AppColors.primary
+              : AppColors.secondary, // Color of the cell
           child: TextButton(
             onPressed: onPressed,
             child: Text(

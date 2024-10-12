@@ -11,6 +11,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 Future<Set<Note>> getAllNotes() =>
     RustLib.instance.api.crateApiNotesGetAllNotes();
 
+Future<List<Note>> allNotes() => RustLib.instance.api.crateApiNotesAllNotes();
+
 Future<void> stop() => RustLib.instance.api.crateApiNotesStop();
 
 Future<void> playExercise() => RustLib.instance.api.crateApiNotesPlayExercise();
