@@ -1,9 +1,9 @@
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use std::collections::HashSet;
 use std::f32::consts::PI;
-use std::sync::{mpsc, Arc, Mutex};
+use std::sync::mpsc;
 use std::thread;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 use crate::api::notes::Note;
 use crate::player::constants::{
@@ -20,7 +20,7 @@ impl Player {
         Player {}
     }
 
-    pub fn start(&mut self, notes: HashSet<Note>) -> mpsc::Sender<()> {
+    pub fn start(&mut self, notes: HashSet<Note>, repetitions: u8) -> mpsc::Sender<()> {
         let (tx, rx) = mpsc::channel();
 
         thread::spawn(move || {
@@ -34,7 +34,7 @@ impl Player {
                 buffer_size: cpal::BufferSize::Default,
             };
 
-            let mut exercise_generator = ExerciseGenerator::new(notes).unwrap();
+            let mut exercise_generator = ExerciseGenerator::new(notes, repetitions).unwrap();
 
             let stream = device
                 .build_output_stream(

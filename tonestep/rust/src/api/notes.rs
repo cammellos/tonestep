@@ -1,5 +1,4 @@
 use std::collections::HashSet;
-use std::time::Instant;
 
 #[repr(C)]
 #[derive(Hash, Debug, Copy, Clone, PartialEq, Eq)]

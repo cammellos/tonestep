@@ -20,7 +20,7 @@ impl Manager {
 
     pub fn start_playing(&mut self) {
         let mut player = Player::new();
-        self.sender = Some(player.start(get_all_notes()));
+        self.sender = Some(player.start(get_all_notes(), 2));
     }
 
     pub fn stop_playing(&mut self) {

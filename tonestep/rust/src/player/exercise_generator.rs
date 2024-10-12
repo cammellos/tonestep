@@ -57,13 +57,6 @@ pub struct ExerciseCommand {
     pub play_voice_answer: bool,
 }
 
-pub struct ExerciseGenerator {
-    notes: HashSet<Note>,
-    exercise: Exercise,
-    pub time: Instant,
-    pub sample_clock: f32,
-}
-
 struct VolumeTimings {
     fade_in_start: u64,
     full_volume_start: u64,
@@ -103,8 +96,17 @@ fn calculate_volume_info(elapsed: Duration, timings: &VolumeTimings) -> VolumeIn
     }
 }
 
+pub struct ExerciseGenerator {
+    notes: HashSet<Note>,
+    repetitions: u8,
+    current_repetition: u8,
+    exercise: Exercise,
+    pub time: Instant,
+    pub sample_clock: f32,
+}
+
 impl ExerciseGenerator {
-    pub fn new(notes: HashSet<Note>) -> Result<ExerciseGenerator, &'static str> {
+    pub fn new(notes: HashSet<Note>, repetitions: u8) -> Result<ExerciseGenerator, &'static str> {
         if notes.is_empty() {
             return Err("The set of notes cannot be empty");
         }
@@ -112,8 +114,10 @@ impl ExerciseGenerator {
         let exercise = Exercise::new(random_root(), random_relative(notes.clone()));
         Ok(ExerciseGenerator {
             notes,
+            repetitions,
             time,
             exercise,
+            current_repetition: 1,
             sample_clock: 0f32,
         })
     }
@@ -193,7 +197,13 @@ impl ExerciseGenerator {
 
     fn _generate(&mut self, elapsed: Duration) -> () {
         if elapsed >= Duration::from_secs(ROOT_END_TIME) {
-            self.exercise = self.next_exercise();
+            if self.current_repetition == self.repetitions {
+                self.exercise = self.next_exercise();
+                self.current_repetition = 1;
+            } else {
+                self.current_repetition += 1;
+                self.exercise = self.next_exercise_keeping_root();
+            }
             self.time = Instant::now();
         }
     }
@@ -203,16 +213,29 @@ impl ExerciseGenerator {
         while root == self.exercise.root {
             root = random_root();
         }
-        Exercise::new(root, self.random_relative())
+        Exercise::new(root, self.random_relative(false))
     }
 
-    pub fn random_relative(&self) -> Note {
-        random_relative(self.notes.clone())
+    fn next_exercise_keeping_root(&self) -> Exercise {
+        Exercise::new(self.exercise.root, self.random_relative(true))
+    }
+
+    pub fn random_relative(&self, avoid_repetition: bool) -> Note {
+        let mut relative = random_relative(self.notes.clone());
+        if self.notes.len() == 1 || !avoid_repetition {
+            return relative;
+        }
+        while relative == self.exercise.relative {
+            relative = random_relative(self.notes.clone());
+        }
+        relative
     }
 }
+
 fn random_root() -> Note {
     random_relative(get_all_notes())
 }
+
 fn random_relative(notes: HashSet<Note>) -> Note {
     let mut rng = thread_rng();
     notes
@@ -404,8 +427,8 @@ mod tests {
     }
 
     #[test]
-    fn test_exercise_generator_current_exercise() {
-        let mut exercise_generator = ExerciseGenerator::new(HashSet::from([Note::Two])).unwrap();
+    fn test_exercise_generator_current_exercise_single_repetition() {
+        let mut exercise_generator = ExerciseGenerator::new(HashSet::from([Note::Two]), 1).unwrap();
 
         exercise_generator._generate(Duration::from_secs(1));
 
@@ -433,6 +456,45 @@ mod tests {
         assert!(
             exercise_generator.time.duration_since(Instant::now()) < Duration::from_secs(1),
             "it should reset the timer"
+        );
+    }
+
+    #[test]
+    fn test_exercise_generator_current_exercise_multiple_repetitions() {
+        let mut exercise_generator =
+            ExerciseGenerator::new(HashSet::from([Note::Two, Note::Three]), 2).unwrap();
+
+        exercise_generator._generate(Duration::from_secs(1));
+
+        exercise_generator.time = Instant::now() + Duration::from_secs(ROOT_END_TIME);
+
+        assert!(
+            exercise_generator.time.duration_since(Instant::now()) > Duration::from_secs(1),
+            "making sure that duration is correctly calculated"
+        );
+
+        let old_root = exercise_generator.exercise.root;
+        let old_relative = exercise_generator.exercise.relative;
+        exercise_generator._generate(Duration::from_secs(ROOT_END_TIME));
+
+        assert_eq!(
+            old_root, exercise_generator.exercise.root,
+            "it keeps the same root tone"
+        );
+
+        assert!(
+            exercise_generator.time.duration_since(Instant::now()) < Duration::from_secs(1),
+            "it should reset the timer"
+        );
+
+        assert_eq!(2, exercise_generator.current_repetition);
+        assert_ne!(old_relative, exercise_generator.exercise.relative);
+
+        exercise_generator._generate(Duration::from_secs(ROOT_END_TIME));
+
+        assert_ne!(
+            old_root, exercise_generator.exercise.root,
+            "it changes root tone"
         );
     }
 
