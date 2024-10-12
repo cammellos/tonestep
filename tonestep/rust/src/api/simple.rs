@@ -11,5 +11,5 @@ pub fn start_playing() {
 }
 
 pub fn stop_playing() {
-    manager::start_playing();
+    manager::stop_playing();
 }

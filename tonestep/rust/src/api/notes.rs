@@ -101,5 +101,5 @@ pub fn get_all_notes() -> HashSet<Note> {
     ])
 }
 
-pub fn stop() -> () {}
-pub fn play_exercise() -> () {}
+pub fn stop() {}
+pub fn play_exercise() {}

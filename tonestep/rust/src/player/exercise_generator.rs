@@ -211,7 +211,7 @@ impl ExerciseGenerator {
         self._generate(self.time.elapsed())
     }
 
-    fn _generate(&mut self, elapsed: Duration) -> () {
+    fn _generate(&mut self, elapsed: Duration) {
         if elapsed >= Duration::from_secs(ROOT_END_TIME) {
             if self.current_repetition == self.repetitions {
                 self.exercise = self.next_exercise();
@@ -254,11 +254,10 @@ fn random_root() -> Note {
 
 fn random_relative(notes: HashSet<Note>) -> Note {
     let mut rng = thread_rng();
-    notes
+    *notes
         .iter()
         .choose(&mut rng)
         .expect("notes cannot be empty")
-        .clone() // Return the enum variant
 }
 
 fn generate_piano_frequency(n: i32) -> f32 {
@@ -270,11 +269,11 @@ fn generate_piano_frequency(n: i32) -> f32 {
 }
 
 fn root_note_to_frequency(note: Note) -> f32 {
-    return generate_piano_frequency(note.to_keyboard_c1_note());
+    generate_piano_frequency(note.to_keyboard_c1_note())
 }
 
 fn relative_note_to_frequency(note: Note) -> f32 {
-    return generate_piano_frequency(note.to_keyboard_c5_note());
+    generate_piano_frequency(note.to_keyboard_c5_note())
 }
 
 fn relative_note_to_absolute(root: Note, relative: Note) -> Note {

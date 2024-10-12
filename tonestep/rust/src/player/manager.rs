@@ -1,7 +1,7 @@
 use std::sync::{mpsc, Arc, Mutex};
 
 use crate::api::notes::get_all_notes;
-use crate::player::player::Player;
+use crate::player::Player;
 
 use lazy_static::lazy_static;
 
@@ -19,7 +19,7 @@ impl Manager {
     }
 
     pub fn start_playing(&mut self) {
-        let mut player = Player::new();
+        let mut player = Player {};
         self.sender = Some(player.start(get_all_notes(), 2));
     }
 
