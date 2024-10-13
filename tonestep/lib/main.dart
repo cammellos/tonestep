@@ -127,17 +127,28 @@ class _HomeScreenScreenState extends State<HomeScreenScreen> {
                                   });
                                 });
                           }).toList()),
+                      const SizedBox(height: 10),
                       Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.primary,
+                                ),
                                 onPressed: () =>
                                     api.startPlaying(notes: selectedNotes),
-                                child: const Text('Play')),
+                                child: const Text('Play',
+                                    style: TextStyle(
+                                        fontSize: 30, color: Colors.white))),
+                            const SizedBox(width: 20),
                             ElevatedButton(
-                              onPressed: () => api.stopPlaying(),
-                              child: const Text('Stop'),
-                            )
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.error,
+                                ),
+                                onPressed: () => api.stopPlaying(),
+                                child: const Text('Stop',
+                                    style: TextStyle(
+                                        fontSize: 30, color: Colors.white))),
                           ])
                     ]));
           } else {
