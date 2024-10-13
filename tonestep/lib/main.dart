@@ -72,13 +72,15 @@ class _HomeScreenScreenState extends State<HomeScreenScreen> {
               _isInitialized = true;
             }
 
-            return Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: allNotes.take(4).map((note) {
-                        return SquareButton(
+            return Container(
+                padding: const EdgeInsets.all(10),
+                child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: allNotes.take(4).map((note) {
+                            return SquareButton(
                                 selected: selectedNotes.contains(note),
                                 label: note_utils.toString(note),
                                 onPressed: () {
@@ -90,11 +92,12 @@ class _HomeScreenScreenState extends State<HomeScreenScreen> {
                                     }
                                   });
                                 });
-		      }).toList()),
-		      Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: allNotes.skip(4).take(4).map((note) {
-                        return SquareButton(
+                          }).toList()),
+                      const SizedBox(height: 10),
+                      Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: allNotes.skip(4).take(4).map((note) {
+                            return SquareButton(
                                 selected: selectedNotes.contains(note),
                                 label: note_utils.toString(note),
                                 onPressed: () {
@@ -106,11 +109,12 @@ class _HomeScreenScreenState extends State<HomeScreenScreen> {
                                     }
                                   });
                                 });
-		      }).toList()),
-Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: allNotes.skip(8).take(4).map((note) {
-                        return SquareButton(
+                          }).toList()),
+                      const SizedBox(height: 10),
+                      Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: allNotes.skip(8).take(4).map((note) {
+                            return SquareButton(
                                 selected: selectedNotes.contains(note),
                                 label: note_utils.toString(note),
                                 onPressed: () {
@@ -122,18 +126,20 @@ Row(
                                     }
                                   });
                                 });
-		      }).toList()),
-
-                  Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                    ElevatedButton(
-                        onPressed: () => api.startPlaying(notes: selectedNotes),
-                        child: const Text('Play')),
-                    ElevatedButton(
-                      onPressed: () => api.stopPlaying(),
-                      child: const Text('Stop'),
-                    )
-                  ])
-                ]);
+                          }).toList()),
+                      Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            ElevatedButton(
+                                onPressed: () =>
+                                    api.startPlaying(notes: selectedNotes),
+                                child: const Text('Play')),
+                            ElevatedButton(
+                              onPressed: () => api.stopPlaying(),
+                              child: const Text('Stop'),
+                            )
+                          ])
+                    ]));
           } else {
             return const Text('No notes available');
           }
@@ -143,69 +149,39 @@ Row(
   }
 }
 
-class SquareCell extends StatelessWidget {
-  const SquareCell({
-    super.key,
-    required this.selected,
-    required this.note,
-    required this.onPressed,
-  });
-  final bool selected;
-  final notes.Note note;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        // Calculate the width for the square cell
-        double cellSize = constraints.maxWidth / 8;
-
-        return Container(
-          width: cellSize,
-          margin: const EdgeInsets.all(10.0),
-          height: cellSize, // Make the height equal to the width for a square
-          color: selected
-              ? AppColors.primary
-              : AppColors.secondary, // Color of the cell
-          child: TextButton(
-            onPressed: onPressed,
-            child: Text(
-              note_utils.toString(note),
-              style: const TextStyle(color: Colors.white),
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
-
 class SquareButton extends StatelessWidget {
   final String label;
   final VoidCallback onPressed;
   final bool selected;
 
-  SquareButton({required this.label, required this.onPressed, required this.selected});
+  SquareButton(
+      {required this.label, required this.onPressed, required this.selected});
 
   @override
   Widget build(BuildContext context) {
     return Expanded(
-      child:  Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 5.0),
-      child: AspectRatio(
-                    aspectRatio: 1, // Makes the button square
-                    child: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-	backgroundColor: selected ? AppColors.primary : AppColors.secondary,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12), // Rounded corners
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 5.0),
+        child: AspectRatio(
+          aspectRatio: 1, // Makes the button square
+          child: ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor:
+                  selected ? AppColors.primary : AppColors.secondary,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12), // Rounded corners
+              ),
+            ),
+            onPressed: onPressed,
+            child: Text(label,
+                style: TextStyle(
+                    fontSize: 30,
+                    fontWeight: FontWeight.bold,
+                    color: selected
+                        ? AppColors.onPrimary
+                        : AppColors.onSecondary)),
           ),
         ),
-        onPressed: onPressed,
-        child: Text(label, style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold, color: selected? AppColors.onPrimary : AppColors.onSecondary)),
-      ),
-      ),
       ),
     );
   }
