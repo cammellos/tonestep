@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:tonestep/src/rust/api/notes.dart' as notes;
 import 'package:tonestep/src/rust/api/simple.dart' as api;
 import 'package:tonestep/src/rust/api/note_utils.dart' as note_utils;
+import 'package:auto_size_text/auto_size_text.dart';
 import 'package:tonestep/src/rust/frb_generated.dart';
 import 'package:tonestep/components/theme.dart';
 import 'package:flutter/services.dart';
@@ -63,10 +64,15 @@ class _HomeScreenScreenState extends State<HomeScreenScreen> {
           future: notesProvider.allNotes(),
           builder: (context, snapshot) {
             // Calculate the max height for the square buttons (75% of the total height)
-            double availableHeight = constraints.maxHeight * 0.75;
+            double availableHeight = constraints.maxHeight * 0.7;
             // Divide it evenly among 3 rows with some margin
             double buttonHeight = (availableHeight - 40) /
                 4; // Adjust 40 as the total space between rows
+            double availableWidth = constraints.maxWidth;
+            double buttonWidth = (availableWidth - 120) / 4;
+            double buttonSize =
+                buttonWidth > buttonHeight ? buttonHeight : buttonWidth;
+
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const CircularProgressIndicator();
             } else if (snapshot.hasError) {
@@ -102,7 +108,7 @@ class _HomeScreenScreenState extends State<HomeScreenScreen> {
                                                     .contains(note),
                                                 label:
                                                     note_utils.toString(note),
-                                                height: buttonHeight,
+                                                height: buttonSize,
                                                 onPressed: () {
                                                   setState(() {
                                                     if (selectedNotes
@@ -126,7 +132,7 @@ class _HomeScreenScreenState extends State<HomeScreenScreen> {
                                             return SquareButton(
                                                 selected: selectedNotes
                                                     .contains(note),
-                                                height: buttonHeight,
+                                                height: buttonSize,
                                                 label:
                                                     note_utils.toString(note),
                                                 onPressed: () {
@@ -154,7 +160,7 @@ class _HomeScreenScreenState extends State<HomeScreenScreen> {
                                                     .contains(note),
                                                 label:
                                                     note_utils.toString(note),
-                                                height: buttonHeight,
+                                                height: buttonSize,
                                                 onPressed: () {
                                                   setState(() {
                                                     if (selectedNotes
@@ -230,7 +236,11 @@ class SquareButton extends StatelessWidget {
             ),
           ),
           onPressed: onPressed,
-          child: Text(label,
+          child: AutoSizeText(label,
+              maxFontSize: 30,
+              minFontSize: 12,
+              textAlign: TextAlign.center,
+              maxLines: 1,
               style: TextStyle(
                   fontSize: 30,
                   fontWeight: FontWeight.bold,
