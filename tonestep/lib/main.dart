@@ -58,104 +58,146 @@ class _HomeScreenScreenState extends State<HomeScreenScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: FutureBuilder<List<notes.Note>>(
-        future: notesProvider.allNotes(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const CircularProgressIndicator();
-          } else if (snapshot.hasError) {
-            return Text('Error: ${snapshot.error}');
-          } else if (snapshot.hasData) {
-            List<notes.Note> allNotes = (snapshot.data ?? []);
-            if (!_isInitialized) {
-              selectedNotes.addAll(allNotes);
-              _isInitialized = true;
-            }
+      body: LayoutBuilder(builder: (context, constraints) {
+        return FutureBuilder<List<notes.Note>>(
+          future: notesProvider.allNotes(),
+          builder: (context, snapshot) {
+            // Calculate the max height for the square buttons (75% of the total height)
+            double availableHeight = constraints.maxHeight * 0.75;
+            // Divide it evenly among 3 rows with some margin
+            double buttonHeight = (availableHeight - 40) /
+                4; // Adjust 40 as the total space between rows
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const CircularProgressIndicator();
+            } else if (snapshot.hasError) {
+              return Text('Error: ${snapshot.error}');
+            } else if (snapshot.hasData) {
+              List<notes.Note> allNotes = (snapshot.data ?? []);
+              if (!_isInitialized) {
+                selectedNotes.addAll(allNotes);
+                _isInitialized = true;
+              }
 
-            return Container(
-                padding: const EdgeInsets.all(10),
-                child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: allNotes.take(4).map((note) {
-                            return SquareButton(
-                                selected: selectedNotes.contains(note),
-                                label: note_utils.toString(note),
-                                onPressed: () {
-                                  setState(() {
-                                    if (selectedNotes.contains(note)) {
-                                      selectedNotes.remove(note);
-                                    } else {
-                                      selectedNotes.add(note);
-                                    }
-                                  });
-                                });
-                          }).toList()),
-                      const SizedBox(height: 10),
-                      Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: allNotes.skip(4).take(4).map((note) {
-                            return SquareButton(
-                                selected: selectedNotes.contains(note),
-                                label: note_utils.toString(note),
-                                onPressed: () {
-                                  setState(() {
-                                    if (selectedNotes.contains(note)) {
-                                      selectedNotes.remove(note);
-                                    } else {
-                                      selectedNotes.add(note);
-                                    }
-                                  });
-                                });
-                          }).toList()),
-                      const SizedBox(height: 10),
-                      Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: allNotes.skip(8).take(4).map((note) {
-                            return SquareButton(
-                                selected: selectedNotes.contains(note),
-                                label: note_utils.toString(note),
-                                onPressed: () {
-                                  setState(() {
-                                    if (selectedNotes.contains(note)) {
-                                      selectedNotes.remove(note);
-                                    } else {
-                                      selectedNotes.add(note);
-                                    }
-                                  });
-                                });
-                          }).toList()),
-                      const SizedBox(height: 10),
-                      Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppColors.primary,
-                                ),
-                                onPressed: () =>
-                                    api.startPlaying(notes: selectedNotes),
-                                child: const Text('Play',
-                                    style: TextStyle(
-                                        fontSize: 30, color: Colors.white))),
-                            const SizedBox(width: 20),
-                            ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppColors.error,
-                                ),
-                                onPressed: () => api.stopPlaying(),
-                                child: const Text('Stop',
-                                    style: TextStyle(
-                                        fontSize: 30, color: Colors.white))),
-                          ])
-                    ]));
-          } else {
-            return const Text('No notes available');
-          }
-        },
-      ),
+              return Container(
+                  padding: const EdgeInsets.all(10),
+                  child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Expanded(
+                            flex: 3,
+                            child: FractionallySizedBox(
+                                heightFactor: 0.75,
+                                widthFactor: 0.9,
+                                child: Column(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceEvenly,
+                                    children: [
+                                      Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceEvenly,
+                                          children:
+                                              allNotes.take(4).map((note) {
+                                            return SquareButton(
+                                                selected: selectedNotes
+                                                    .contains(note),
+                                                label:
+                                                    note_utils.toString(note),
+                                                height: buttonHeight,
+                                                onPressed: () {
+                                                  setState(() {
+                                                    if (selectedNotes
+                                                        .contains(note)) {
+                                                      selectedNotes
+                                                          .remove(note);
+                                                    } else {
+                                                      selectedNotes.add(note);
+                                                    }
+                                                  });
+                                                });
+                                          }).toList()),
+                                      const SizedBox(height: 10),
+                                      Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceEvenly,
+                                          children: allNotes
+                                              .skip(4)
+                                              .take(4)
+                                              .map((note) {
+                                            return SquareButton(
+                                                selected: selectedNotes
+                                                    .contains(note),
+                                                height: buttonHeight,
+                                                label:
+                                                    note_utils.toString(note),
+                                                onPressed: () {
+                                                  setState(() {
+                                                    if (selectedNotes
+                                                        .contains(note)) {
+                                                      selectedNotes
+                                                          .remove(note);
+                                                    } else {
+                                                      selectedNotes.add(note);
+                                                    }
+                                                  });
+                                                });
+                                          }).toList()),
+                                      const SizedBox(height: 10),
+                                      Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceEvenly,
+                                          children: allNotes
+                                              .skip(8)
+                                              .take(4)
+                                              .map((note) {
+                                            return SquareButton(
+                                                selected: selectedNotes
+                                                    .contains(note),
+                                                label:
+                                                    note_utils.toString(note),
+                                                height: buttonHeight,
+                                                onPressed: () {
+                                                  setState(() {
+                                                    if (selectedNotes
+                                                        .contains(note)) {
+                                                      selectedNotes
+                                                          .remove(note);
+                                                    } else {
+                                                      selectedNotes.add(note);
+                                                    }
+                                                  });
+                                                });
+                                          }).toList())
+                                    ]))),
+                        const SizedBox(height: 10),
+                        Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppColors.primary,
+                                  ),
+                                  onPressed: () =>
+                                      api.startPlaying(notes: selectedNotes),
+                                  child: const Text('Play',
+                                      style: TextStyle(
+                                          fontSize: 30, color: Colors.white))),
+                              const SizedBox(width: 20),
+                              ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppColors.error,
+                                  ),
+                                  onPressed: () => api.stopPlaying(),
+                                  child: const Text('Stop',
+                                      style: TextStyle(
+                                          fontSize: 30, color: Colors.white))),
+                            ])
+                      ]));
+            } else {
+              return const Text('No notes available');
+            }
+          },
+        );
+      }),
     );
   }
 }
@@ -164,34 +206,36 @@ class SquareButton extends StatelessWidget {
   final String label;
   final VoidCallback onPressed;
   final bool selected;
+  final double height;
 
-  SquareButton(
-      {required this.label, required this.onPressed, required this.selected});
+  const SquareButton(
+      {super.key,
+      required this.label,
+      required this.onPressed,
+      required this.selected,
+      required this.height});
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
+    return SizedBox(
+      height: height,
+      width: height,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 5.0),
-        child: AspectRatio(
-          aspectRatio: 1, // Makes the button square
-          child: ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor:
-                  selected ? AppColors.primary : AppColors.secondary,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12), // Rounded corners
-              ),
+        child: ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: selected ? AppColors.primary : AppColors.secondary,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12), // Rounded corners
             ),
-            onPressed: onPressed,
-            child: Text(label,
-                style: TextStyle(
-                    fontSize: 30,
-                    fontWeight: FontWeight.bold,
-                    color: selected
-                        ? AppColors.onPrimary
-                        : AppColors.onSecondary)),
           ),
+          onPressed: onPressed,
+          child: Text(label,
+              style: TextStyle(
+                  fontSize: 30,
+                  fontWeight: FontWeight.bold,
+                  color:
+                      selected ? AppColors.onPrimary : AppColors.onSecondary)),
         ),
       ),
     );
